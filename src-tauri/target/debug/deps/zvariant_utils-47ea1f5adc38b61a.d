@@ -1,0 +1,12 @@
+/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/zvariant_utils-47ea1f5adc38b61a.d: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/lib.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/case.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/macros.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/serialized.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/mod.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/child.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/fields.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/error.rs
+
+/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/libzvariant_utils-47ea1f5adc38b61a.rmeta: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/lib.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/case.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/macros.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/serialized.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/mod.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/child.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/fields.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/error.rs
+
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/lib.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/case.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/macros.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/serialized.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/mod.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/child.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/fields.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zvariant_utils-3.3.1/src/signature/error.rs:

@@ -1,0 +1,15 @@
+/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/zbus_names-a3122a283c59d88e.d: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/lib.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/bus_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/unique_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/well_known_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/interface_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/member_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/property_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/error.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/error_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/utils.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/../README.md
+
+/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/libzbus_names-a3122a283c59d88e.rmeta: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/lib.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/bus_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/unique_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/well_known_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/interface_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/member_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/property_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/error.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/error_name.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/utils.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/../README.md
+
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/lib.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/bus_name.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/unique_name.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/well_known_name.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/interface_name.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/member_name.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/property_name.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/error.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/error_name.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/utils.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/zbus_names-4.3.2/src/../README.md:

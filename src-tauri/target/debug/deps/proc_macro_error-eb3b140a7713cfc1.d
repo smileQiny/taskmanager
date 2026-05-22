@@ -1,0 +1,12 @@
+/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/proc_macro_error-eb3b140a7713cfc1.d: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/lib.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/dummy.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/diagnostic.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/macros.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/sealed.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/imp/fallback.rs
+
+/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/libproc_macro_error-eb3b140a7713cfc1.rlib: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/lib.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/dummy.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/diagnostic.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/macros.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/sealed.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/imp/fallback.rs
+
+/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/libproc_macro_error-eb3b140a7713cfc1.rmeta: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/lib.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/dummy.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/diagnostic.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/macros.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/sealed.rs /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/imp/fallback.rs
+
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/lib.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/dummy.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/diagnostic.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/macros.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/sealed.rs:
+/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/proc-macro-error-1.0.4/src/imp/fallback.rs:
