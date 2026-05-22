@@ -1,5 +1,0 @@
-/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/phf_macros-95008c25c5ae90e0.d: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/phf_macros-0.10.0/src/lib.rs
-
-/mnt/mac/Users/qiny/codespace/taskmanager/src-tauri/target/debug/deps/libphf_macros-95008c25c5ae90e0.so: /root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/phf_macros-0.10.0/src/lib.rs
-
-/root/.cargo/registry/src/rsproxy.cn-e3de039b2554c837/phf_macros-0.10.0/src/lib.rs:
