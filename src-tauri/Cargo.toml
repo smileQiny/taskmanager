@@ -14,12 +14,12 @@ name = "taskmanager"
 path = "src/main.rs"
 
 [build-dependencies]
-tauri-build = { version = "=2.0.3", features = [] }
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "=2.0.6", features = [] }
-tauri-plugin-shell = "=2.0.2"
-tauri-plugin-notification = "=2.0.1"
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.31", features = ["bundled"] }
@@ -30,5 +30,3 @@ thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 
-[patch.crates-io]
-tauri-utils = { version = "=2.0.1" }
