@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { TopBar } from '../components/layout/TopBar';
 import { useSettingsStore } from '../stores/settingsStore';
 import { usePomodoroStore } from '../stores/pomodoroStore';
+import { useUpdateStore } from '../stores/updateStore';
+import { AppUpdateInfo, UpdateStatus } from '../types/update';
 import { SyncAccount, SyncProvider } from '../types/task';
 
 const providerLabels: Record<SyncProvider, string> = {
@@ -33,6 +35,16 @@ export function SettingsPage() {
     syncNow,
   } = useSettingsStore();
   const { setDurationMinutes } = usePomodoroStore();
+  const {
+    currentVersion,
+    release,
+    status: updateStatus,
+    error: updateError,
+    check: checkForUpdates,
+    openPreferredDownload,
+    openReleasePage,
+  } = useUpdateStore();
+
   useEffect(() => { fetchSettings(); }, [fetchSettings]);
 
   const updatePomodoroMinutes = async (minutes: number) => {
@@ -79,6 +91,16 @@ export function SettingsPage() {
             </div>
           </section>
 
+          <UpdateSection
+            currentVersion={currentVersion}
+            release={release}
+            status={updateStatus}
+            error={updateError}
+            onCheck={() => void checkForUpdates('manual')}
+            onOpenRelease={() => void openReleasePage()}
+            onDownload={() => void openPreferredDownload()}
+          />
+
           <section className="rounded-md border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <div>
@@ -113,6 +135,102 @@ export function SettingsPage() {
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+function UpdateSection({
+  currentVersion,
+  release,
+  status,
+  error,
+  onCheck,
+  onOpenRelease,
+  onDownload,
+}: {
+  currentVersion: string;
+  release: AppUpdateInfo | null;
+  status: UpdateStatus;
+  error: string | null;
+  onCheck: () => void;
+  onOpenRelease: () => void;
+  onDownload: () => void;
+}) {
+  const isChecking = status === 'checking';
+  const canDownload = status === 'update_available';
+
+  return (
+    <section className="overflow-hidden rounded-md border border-slate-200 bg-white">
+      <div className="border-b border-slate-100 p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-slate-950">版本与更新</h2>
+              <span className={updateBadgeClass(status)}>{updateStatusLabel(status)}</span>
+            </div>
+            <p className="mt-1 text-sm text-slate-500">
+              启动时自动检查 GitHub 最新安装包；更新需要下载并重新安装。
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button className="btn btn-sm border-slate-200 bg-white" onClick={onCheck} disabled={isChecking}>
+              {isChecking ? '检查中...' : '检查更新'}
+            </button>
+            <button className="btn btn-sm bg-slate-950 text-white hover:bg-slate-800" onClick={onDownload} disabled={!canDownload}>
+              下载安装包
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-0 md:grid-cols-2">
+        <VersionMetric label="当前版本" value={`v${currentVersion}`} />
+        <VersionMetric
+          label="最新版本"
+          value={release ? `v${release.latestVersion}` : (isChecking ? '检查中...' : '未检查')}
+          accent={canDownload}
+        />
+      </div>
+
+      {release && (
+        <div className="border-t border-slate-100 px-5 py-4">
+          <div className="grid gap-3 text-sm md:grid-cols-[1fr_auto] md:items-center">
+            <div className="min-w-0">
+              <p className="truncate font-medium text-slate-900">{release.releaseName}</p>
+              <p className="mt-1 text-slate-500">
+                {release.publishedAt ? `发布于 ${formatDateTime(release.publishedAt)}` : 'GitHub 未提供发布时间'}
+                {release.preferredAsset ? ` · ${release.preferredAsset.name}` : ' · 暂无可下载安装包'}
+              </p>
+            </div>
+            <button className="btn btn-sm border-slate-200 bg-white" onClick={onOpenRelease}>
+              查看 Release
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="border-t border-rose-100 bg-rose-50 px-5 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function VersionMetric({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="border-t border-slate-100 px-5 py-4 md:border-t-0 md:first:border-r">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className={`mt-1 text-lg font-semibold ${accent ? 'text-emerald-700' : 'text-slate-950'}`}>{value}</p>
     </div>
   );
 }
@@ -188,4 +306,29 @@ function PathRow({ label, value }: { label: string; value: string }) {
       <code className="block overflow-x-auto rounded bg-slate-100 px-3 py-2 text-xs text-slate-600">{value}</code>
     </div>
   );
+}
+
+function updateStatusLabel(status: UpdateStatus): string {
+  return {
+    idle: '未检查',
+    checking: '检查中',
+    update_available: '有新版本',
+    up_to_date: '已是最新',
+    error: '检查失败',
+  }[status];
+}
+
+function updateBadgeClass(status: UpdateStatus): string {
+  const base = 'rounded px-2 py-0.5 text-xs';
+  if (status === 'update_available') return `${base} bg-emerald-50 text-emerald-700`;
+  if (status === 'error') return `${base} bg-rose-50 text-rose-700`;
+  if (status === 'checking') return `${base} bg-sky-50 text-sky-700`;
+  return `${base} bg-slate-100 text-slate-600`;
+}
+
+function formatDateTime(value: string): string {
+  return new Intl.DateTimeFormat('zh-CN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
 }
