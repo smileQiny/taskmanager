@@ -1,43 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { TopBar } from '../components/layout/TopBar';
 import { TaskList } from '../components/tasks/TaskList';
-import { TaskForm } from '../components/tasks/TaskForm';
+import { TaskDetailPanel } from '../components/tasks/TaskDetailPanel';
+import { TaskFilters } from '../components/tasks/TaskFilters';
 import { useTaskStore } from '../stores/taskStore';
-import { Task } from '../types/task';
 
 export function TasksPage() {
-  const { tasks, fetchTasks } = useTaskStore();
-  const [editing, setEditing] = useState<Task | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'todo' | 'in_progress' | 'done'>('all');
+  const { tasks, fetchTasks, selectedTaskId, draftDefaults, getVisibleTasks, startNewTask, error } = useTaskStore();
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
-  const filtered = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter);
+  const visibleTasks = getVisibleTasks();
+  const selectedTask = tasks.find((task) => task.id === selectedTaskId) ?? null;
 
   return (
-    <div className="flex flex-col flex-1">
-      <TopBar title="任务">
-        <div className="join">
-          {(['all', 'todo', 'in_progress', 'done'] as const).map((f) => (
-            <button key={f}
-              className={`btn btn-xs join-item ${filter === f ? 'btn-active' : ''}`}
-              onClick={() => setFilter(f)}
-            >
-              {{ all: '全部', todo: '待办', in_progress: '进行中', done: '已完成' }[f]}
-            </button>
-          ))}
+    <div className="flex min-h-0 flex-1">
+      <section className="flex min-w-0 flex-1 flex-col">
+        <TopBar title="任务" subtitle={`${visibleTasks.length} / ${tasks.length} 个任务`}>
+          <button className="btn btn-primary btn-sm" onClick={() => startNewTask()}>
+            新任务
+          </button>
+        </TopBar>
+        <TaskFilters />
+        {error && <div className="mx-5 mt-4 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>}
+        <div className="flex-1 overflow-y-auto p-5">
+          <TaskList tasks={visibleTasks} selectedTaskId={selectedTaskId} emptyText="没有匹配的任务" />
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowForm(true)}>
-          + 新任务
-        </button>
-      </TopBar>
-      <div className="flex-1 overflow-y-auto p-4">
-        <TaskList tasks={filtered} onEdit={setEditing} />
-      </div>
-      {(showForm || editing) && (
-        <TaskForm task={editing} onClose={() => { setShowForm(false); setEditing(null); }} />
-      )}
+      </section>
+      <TaskDetailPanel task={selectedTask} defaults={draftDefaults} />
     </div>
   );
 }

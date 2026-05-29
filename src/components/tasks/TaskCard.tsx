@@ -1,19 +1,20 @@
 import { Task } from '../../types/task';
 import { useTaskStore } from '../../stores/taskStore';
+import { formatTaskTime, getTaskTags } from '../../utils/taskUtils';
 
 const priorityColors = {
-  low: 'border-l-info',
-  medium: 'border-l-warning',
-  high: 'border-l-error',
+  low: 'bg-sky-400',
+  medium: 'bg-amber-400',
+  high: 'bg-rose-500',
 };
 
 interface TaskCardProps {
   task: Task;
-  onEdit: (task: Task) => void;
+  selected?: boolean;
 }
 
-export function TaskCard({ task, onEdit }: TaskCardProps) {
-  const { deleteTask, updateTask } = useTaskStore();
+export function TaskCard({ task, selected = false }: TaskCardProps) {
+  const { updateTask, selectTask } = useTaskStore();
 
   const toggleStatus = () => {
     const next = task.status === 'done' ? 'todo' : 'done';
@@ -21,31 +22,36 @@ export function TaskCard({ task, onEdit }: TaskCardProps) {
   };
 
   return (
-    <div className={`card bg-base-100 shadow-sm border-l-4 ${priorityColors[task.priority]}`}>
-      <div className="card-body p-3 flex-row items-center gap-3">
+    <div
+      className={`group flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50 ${selected ? 'bg-teal-50/80' : 'bg-white'}`}
+      onClick={() => selectTask(task)}
+    >
+      <span className={`h-10 w-1 rounded-full ${priorityColors[task.priority]}`} />
+      <div onClick={(event) => event.stopPropagation()}>
         <input
           type="checkbox"
-          className="checkbox checkbox-sm"
+          className="checkbox checkbox-sm checkbox-primary"
           checked={task.status === 'done'}
           onChange={toggleStatus}
         />
-        <div className="flex-1 min-w-0">
-          <p className={`font-medium truncate ${task.status === 'done' ? 'line-through opacity-50' : ''}`}>
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className={`truncate font-medium text-slate-950 ${task.status === 'done' ? 'line-through opacity-45' : ''}`}>
             {task.title}
           </p>
-          {task.start_time && (
-            <p className="text-xs text-base-content/60">
-              {new Date(task.start_time * 1000).toLocaleString('zh-CN', {
-                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-              })}
-            </p>
-          )}
+          {task.status === 'in_progress' && <span className="badge badge-primary badge-sm">进行中</span>}
         </div>
-        <div className="flex gap-1">
-          <button className="btn btn-ghost btn-xs" onClick={() => onEdit(task)}>编辑</button>
-          <button className="btn btn-ghost btn-xs text-error" onClick={() => deleteTask(task.id)}>删除</button>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+          <span>{formatTaskTime(task)}</span>
+          {getTaskTags(task.tags).map((tag) => (
+            <span key={tag} className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500">{tag}</span>
+          ))}
         </div>
       </div>
+      <button className="btn btn-ghost btn-xs opacity-0 transition group-hover:opacity-100" onClick={(event) => { event.stopPropagation(); selectTask(task); }}>
+        编辑
+      </button>
     </div>
   );
 }
