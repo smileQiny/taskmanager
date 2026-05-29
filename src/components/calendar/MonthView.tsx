@@ -5,9 +5,10 @@ interface MonthViewProps {
   selectedDate: Dayjs;
   tasks: Task[];
   onDateClick: (date: Dayjs) => void;
+  onTaskClick: (task: Task) => void;
 }
 
-export function MonthView({ selectedDate, tasks, onDateClick }: MonthViewProps) {
+export function MonthView({ selectedDate, tasks, onDateClick, onTaskClick }: MonthViewProps) {
   const startOfMonth = selectedDate.startOf('month');
   const startDay = startOfMonth.startOf('week');
   const weeks: Dayjs[][] = [];
@@ -35,9 +36,9 @@ export function MonthView({ selectedDate, tasks, onDateClick }: MonthViewProps) 
   const isCurrentMonth = (date: Dayjs) => date.month() === selectedDate.month();
 
   return (
-    <div className="grid grid-cols-7 gap-px bg-base-300 rounded-lg overflow-hidden h-full">
+    <div className="grid h-full grid-cols-7 gap-px overflow-hidden rounded-md border border-slate-200 bg-slate-200">
       {['日', '一', '二', '三', '四', '五', '六'].map((d) => (
-        <div key={d} className="bg-base-200 text-center text-xs font-medium py-2">{d}</div>
+        <div key={d} className="bg-slate-50 py-2 text-center text-xs font-medium text-slate-500">{d}</div>
       ))}
       {weeks.flat().map((date, i) => {
         const dayTasks = getTasksForDay(date);
@@ -45,21 +46,28 @@ export function MonthView({ selectedDate, tasks, onDateClick }: MonthViewProps) 
           <div
             key={i}
             onClick={() => onDateClick(date)}
-            className={`bg-base-100 min-h-[80px] p-1 cursor-pointer hover:bg-base-200 transition
+            className={`min-h-[96px] cursor-pointer bg-white p-2 transition hover:bg-teal-50/60
               ${!isCurrentMonth(date) ? 'opacity-40' : ''}`}
           >
-            <span className={`text-xs inline-block w-6 h-6 text-center leading-6 rounded-full
-              ${isToday(date) ? 'bg-primary text-primary-content' : ''}`}>
+            <span className={`inline-block h-6 w-6 rounded-full text-center text-xs leading-6
+              ${isToday(date) ? 'bg-slate-950 text-white' : 'text-slate-600'}`}>
               {date.date()}
             </span>
             <div className="mt-1 space-y-0.5">
               {dayTasks.slice(0, 3).map((t) => (
-                <div key={t.id} className="text-[10px] truncate px-1 rounded bg-primary/10 text-primary">
+                <button
+                  key={t.id}
+                  className="block w-full truncate rounded bg-teal-50 px-1 py-0.5 text-left text-[10px] text-teal-700"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onTaskClick(t);
+                  }}
+                >
                   {t.title}
-                </div>
+                </button>
               ))}
               {dayTasks.length > 3 && (
-                <div className="text-[10px] text-base-content/50">+{dayTasks.length - 3} 更多</div>
+                <div className="text-[10px] text-slate-400">+{dayTasks.length - 3} 更多</div>
               )}
             </div>
           </div>
