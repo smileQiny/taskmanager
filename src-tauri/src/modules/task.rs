@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use chrono::Utc;
 use rusqlite::{params, Connection};
 use uuid::Uuid;
@@ -58,13 +58,18 @@ pub fn get_by_id(conn: &Connection, id: &str) -> Result<Option<Task>> {
 }
 
 pub fn create(conn: &Connection, input: CreateTaskInput) -> Result<Task> {
+    let title = normalize_required_title(&input.title)?;
+    let status = validate_status(input.status.as_deref().unwrap_or("todo"))?.to_string();
+    let priority = validate_priority(input.priority.as_deref().unwrap_or("medium"))?.to_string();
+    validate_time_range(input.start_time, input.end_time)?;
+
     let now = Utc::now().timestamp();
     let task = Task {
         id: Uuid::new_v4().to_string(),
-        title: input.title,
+        title,
         description: input.description,
-        status: input.status.unwrap_or_else(|| "todo".to_string()),
-        priority: input.priority.unwrap_or_else(|| "medium".to_string()),
+        status,
+        priority,
         start_time: input.start_time,
         end_time: input.end_time,
         all_day: input.all_day.unwrap_or(false),
@@ -96,31 +101,55 @@ pub fn create(conn: &Connection, input: CreateTaskInput) -> Result<Task> {
 }
 
 pub fn update(conn: &Connection, input: UpdateTaskInput) -> Result<Option<Task>> {
+    let existing = match get_by_id(conn, &input.id)? {
+        Some(task) => task,
+        None => return Ok(None),
+    };
+
+    let title = match input.title {
+        Some(title) => normalize_required_title(&title)?,
+        None => existing.title,
+    };
+    let description = input.description.unwrap_or(existing.description);
+    let status = match input.status {
+        Some(status) => validate_status(&status)?.to_string(),
+        None => existing.status,
+    };
+    let priority = match input.priority {
+        Some(priority) => validate_priority(&priority)?.to_string(),
+        None => existing.priority,
+    };
+    let start_time = input.start_time.unwrap_or(existing.start_time);
+    let end_time = input.end_time.unwrap_or(existing.end_time);
+    validate_time_range(start_time, end_time)?;
+    let all_day = input.all_day.unwrap_or(existing.all_day);
+    let recurrence = input.recurrence.unwrap_or(existing.recurrence);
+    let tags = input.tags.unwrap_or(existing.tags);
     let now = Utc::now().timestamp();
     let rows = conn.execute(
         "UPDATE tasks SET
-            title = COALESCE(?2, title),
-            description = COALESCE(?3, description),
-            status = COALESCE(?4, status),
-            priority = COALESCE(?5, priority),
-            start_time = COALESCE(?6, start_time),
-            end_time = COALESCE(?7, end_time),
-            all_day = COALESCE(?8, all_day),
-            recurrence = COALESCE(?9, recurrence),
-            tags = COALESCE(?10, tags),
+            title = ?2,
+            description = ?3,
+            status = ?4,
+            priority = ?5,
+            start_time = ?6,
+            end_time = ?7,
+            all_day = ?8,
+            recurrence = ?9,
+            tags = ?10,
             updated_at = ?11
          WHERE id = ?1",
         params![
             input.id,
-            input.title,
-            input.description,
-            input.status,
-            input.priority,
-            input.start_time,
-            input.end_time,
-            input.all_day.map(|b| b as i64),
-            input.recurrence,
-            input.tags,
+            title,
+            description,
+            status,
+            priority,
+            start_time,
+            end_time,
+            all_day as i64,
+            recurrence,
+            tags,
             now
         ],
     )?;
@@ -128,6 +157,37 @@ pub fn update(conn: &Connection, input: UpdateTaskInput) -> Result<Option<Task>>
         return Ok(None);
     }
     get_by_id(conn, &input.id)
+}
+
+fn normalize_required_title(title: &str) -> Result<String> {
+    let trimmed = title.trim();
+    if trimmed.is_empty() {
+        bail!("title cannot be blank");
+    }
+    Ok(trimmed.to_string())
+}
+
+fn validate_status(status: &str) -> Result<&str> {
+    match status {
+        "todo" | "in_progress" | "done" => Ok(status),
+        _ => bail!("status must be todo, in_progress, or done"),
+    }
+}
+
+fn validate_priority(priority: &str) -> Result<&str> {
+    match priority {
+        "low" | "medium" | "high" => Ok(priority),
+        _ => bail!("priority must be low, medium, or high"),
+    }
+}
+
+fn validate_time_range(start_time: Option<i64>, end_time: Option<i64>) -> Result<()> {
+    if let (Some(start), Some(end)) = (start_time, end_time) {
+        if end < start {
+            bail!("end_time cannot be before start_time");
+        }
+    }
+    Ok(())
 }
 
 pub fn delete(conn: &Connection, id: &str) -> Result<bool> {
@@ -164,4 +224,101 @@ pub fn get_by_date_range(conn: &Connection, from: i64, to: i64) -> Result<Vec<Ta
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(tasks)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::modules::db;
+
+    fn memory_conn() -> Connection {
+        db::init_in_memory().expect("database should initialize")
+    }
+
+    #[test]
+    fn create_rejects_blank_title() {
+        let conn = memory_conn();
+        let err = create(
+            &conn,
+            CreateTaskInput {
+                title: "   ".to_string(),
+                description: None,
+                status: None,
+                priority: None,
+                start_time: None,
+                end_time: None,
+                all_day: None,
+                recurrence: None,
+                tags: None,
+            },
+        )
+        .expect_err("blank title should fail");
+
+        assert!(err.to_string().contains("title"));
+    }
+
+    #[test]
+    fn create_rejects_end_time_before_start_time() {
+        let conn = memory_conn();
+        let err = create(
+            &conn,
+            CreateTaskInput {
+                title: "Timed task".to_string(),
+                description: None,
+                status: None,
+                priority: None,
+                start_time: Some(200),
+                end_time: Some(100),
+                all_day: None,
+                recurrence: None,
+                tags: None,
+            },
+        )
+        .expect_err("invalid time range should fail");
+
+        assert!(err.to_string().contains("end_time"));
+    }
+
+    #[test]
+    fn update_can_clear_nullable_fields() {
+        let conn = memory_conn();
+        let created = create(
+            &conn,
+            CreateTaskInput {
+                title: "Draft".to_string(),
+                description: Some("notes".to_string()),
+                status: None,
+                priority: None,
+                start_time: Some(100),
+                end_time: Some(200),
+                all_day: None,
+                recurrence: None,
+                tags: Some("work".to_string()),
+            },
+        )
+        .expect("task should be created");
+
+        let updated = update(
+            &conn,
+            UpdateTaskInput {
+                id: created.id,
+                title: None,
+                description: Some(None),
+                status: None,
+                priority: None,
+                start_time: Some(None),
+                end_time: Some(None),
+                all_day: None,
+                recurrence: None,
+                tags: Some(None),
+            },
+        )
+        .expect("update should succeed")
+        .expect("task should exist");
+
+        assert_eq!(updated.description, None);
+        assert_eq!(updated.start_time, None);
+        assert_eq!(updated.end_time, None);
+        assert_eq!(updated.tags, None);
+    }
 }
