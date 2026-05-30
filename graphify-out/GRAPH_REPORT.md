@@ -8,7 +8,7 @@
 |--------|-------|
 | Nodes | 409 |
 | Edges | 868 |
-| Communities | 55 |
+| Communities | 54 |
 | Hyperedges | 0 |
 
 ### Confidence Breakdown
@@ -26,28 +26,30 @@
 | taskService | 37 | 0 |
 | create() | 34 | 1 |
 | update() | 33 | 1 |
-| memory_conn() | 30 | 1 |
 | update_can_clear_nullable_fields() | 30 | 1 |
-| normalize_required_title() | 29 | 1 |
-| validate_time_range() | 29 | 1 |
+| memory_conn() | 30 | 1 |
 | sync_now() | 29 | 2 |
 | validate_priority() | 29 | 1 |
+| normalize_required_title() | 29 | 1 |
+| create_rejects_blank_title() | 29 | 1 |
 | validate_status() | 29 | 1 |
 
 ## 🔮 Surprising Connections
 
-- **src_services_taskservice_ts** → **src_services_taskservice_ts_readtasks** (defines)
-- **src_services_taskservice_ts** → **src_services_taskservice_ts_writetasks** (defines)
-- **src_services_taskservice_ts** → **src_services_taskservice_ts_createlocaltask** (defines)
-- **src_services_taskservice_ts** → **src_services_taskservice_ts_updatelocaltask** (defines)
-- **src_services_taskservice_ts** → **src_services_taskservice_ts_normalizerequiredtitle** (defines)
+- **src_tauri_src_commands_sync_rs_list_sync_accounts** → **src_tauri_src_commands_sync_rs_upsert_sync_account** (uses)
+- **src_tauri_src_commands_sync_rs_list_sync_accounts** → **src_tauri_src_commands_sync_rs_sync_provider_now** (uses)
+- **src_tauri_src_commands_sync_rs_list_sync_accounts** → **src_tauri_src_commands_sync_rs_list_task_sync_states** (uses)
+- **src_tauri_src_commands_sync_rs_list_sync_accounts** → **src_tauri_src_commands_sync_rs_set_task_sync** (uses)
+- **src_tauri_src_commands_sync_rs_upsert_sync_account** → **src_tauri_src_commands_sync_rs_list_sync_accounts** (uses)
 
 ## 🏘️ Communities
 
-### Community 0 — writeTaskSyncStates() (29 nodes, cohesion: 0.10)
+### Community 0 — writeTaskSyncStates() (38 nodes, cohesion: 0.09)
 
 - taskService
 - createLocalPomodoroSession()
+- createLocalTask()
+- deleteLocalTask()
 - @tauri-apps/api/core/invoke
 - ../types/task/AppMetadata
 - ../types/task/AppSettings
@@ -62,11 +64,9 @@
 - ../types/task/UpdateTaskInput
 - ../types/task/UpsertSyncAccountInput
 - local()
+- normalizeRequiredTitle()
 - providerLabel()
-- readAllTaskSyncStates()
-- readJson()
-- readPomodoroSessions()
-- _…and 9 more_
+- _…and 18 more_
 
 ### Community 1 — validate_time_range() (22 nodes, cohesion: 0.95)
 
@@ -153,23 +153,7 @@
 - validate_calendar_view()
 - validate_theme()
 
-### Community 5 — App() (13 nodes, cohesion: 0.15)
-
-- App
-- App()
-- ./components/layout/Sidebar/Sidebar
-- ./pages/CalendarPage/CalendarPage
-- ./pages/PomodoroPage/PomodoroPage
-- ./pages/SettingsPage/SettingsPage
-- ./pages/TasksPage/TasksPage
-- ./pages/TodayPage/TodayPage
-- react-router-dom/BrowserRouter
-- react-router-dom/Route
-- react-router-dom/Routes
-- react/useEffect
-- ./stores/updateStore/useUpdateStore
-
-### Community 6 — handleSubmit() (13 nodes, cohesion: 0.15)
+### Community 5 — handleSubmit() (13 nodes, cohesion: 0.15)
 
 - TaskDetailPanel
 - handleSubmit()
@@ -184,6 +168,22 @@
 - ../../types/task/SyncProvider
 - ../../types/task/Task
 - ../../types/task/TaskSyncState
+
+### Community 6 — App() (13 nodes, cohesion: 0.15)
+
+- App
+- App()
+- ./components/layout/Sidebar/Sidebar
+- ./pages/CalendarPage/CalendarPage
+- ./pages/PomodoroPage/PomodoroPage
+- ./pages/SettingsPage/SettingsPage
+- ./pages/TasksPage/TasksPage
+- ./pages/TodayPage/TodayPage
+- react-router-dom/BrowserRouter
+- react-router-dom/Route
+- react-router-dom/Routes
+- react/useEffect
+- ./stores/updateStore/useUpdateStore
 
 ### Community 7 — updatePomodoroMinutes() (12 nodes, cohesion: 0.17)
 
@@ -271,35 +271,7 @@
 - tauri::State
 - update_task()
 
-### Community 13 — upsert_sync_account() (10 nodes, cohesion: 0.64)
-
-- sync
-- crate::AppState
-- crate::models::sync::{
-    SetTaskSyncInput, SyncAccount, SyncRunResult, TaskSyncState, UpsertSyncAccountInput,
-}
-- crate::modules::sync as sync_module
-- tauri::State
-- list_sync_accounts()
-- list_task_sync_states()
-- set_task_sync()
-- sync_provider_now()
-- upsert_sync_account()
-
-### Community 14 — task() (10 nodes, cohesion: 0.20)
-
-- taskUtils.test
-- ./taskUtils/filterTasks
-- ./taskUtils/getTaskTags
-- ./taskUtils/groupTasksForToday
-- ./taskUtils/sortTasks
-- ../types/task/Task
-- vitest/describe
-- vitest/expect
-- vitest/it
-- task()
-
-### Community 15 — list_recent() (10 nodes, cohesion: 0.38)
+### Community 13 — list_recent() (10 nodes, cohesion: 0.38)
 
 - pomodoro
 - create()
@@ -311,6 +283,32 @@
 - super::*
 - uuid::Uuid
 - list_recent()
+
+### Community 14 — zustand/create (10 nodes, cohesion: 0.20)
+
+- settingsStore
+- ../services/taskService/appService
+- ../services/taskService/settingsService
+- ../services/taskService/syncService
+- ../types/task/AppMetadata
+- ../types/task/AppSettings
+- ../types/task/SyncAccount
+- ../types/task/SyncProvider
+- ../types/task/SyncRunResult
+- zustand/create
+
+### Community 15 — task() (10 nodes, cohesion: 0.20)
+
+- taskUtils.test
+- ./taskUtils/filterTasks
+- ./taskUtils/getTaskTags
+- ./taskUtils/groupTasksForToday
+- ./taskUtils/sortTasks
+- ../types/task/Task
+- vitest/describe
+- vitest/expect
+- vitest/it
+- task()
 
 ### Community 16 — migration_adds_sync_account_columns_to_existing_database() (10 nodes, cohesion: 0.29)
 
@@ -325,32 +323,22 @@
 - migrate()
 - migration_adds_sync_account_columns_to_existing_database()
 
-### Community 17 — zustand/create (17) (10 nodes, cohesion: 0.20)
+### Community 17 — upsert_sync_account() (10 nodes, cohesion: 0.64)
 
-- settingsStore
-- ../services/taskService/appService
-- ../services/taskService/settingsService
-- ../services/taskService/syncService
-- ../types/task/AppMetadata
-- ../types/task/AppSettings
-- ../types/task/SyncAccount
-- ../types/task/SyncProvider
-- ../types/task/SyncRunResult
-- zustand/create
+- sync
+- crate::AppState
+- crate::models::sync::{
+    SetTaskSyncInput, SyncAccount, SyncRunResult, TaskSyncState, UpsertSyncAccountInput,
+}
+- crate::modules::sync as sync_module
+- tauri::State
+- list_sync_accounts()
+- list_task_sync_states()
+- set_task_sync()
+- sync_provider_now()
+- upsert_sync_account()
 
-### Community 18 — writeTasks() (9 nodes, cohesion: 0.39)
-
-- createLocalTask()
-- deleteLocalTask()
-- normalizeRequiredTitle()
-- readTasks()
-- updateLocalTask()
-- validatePriority()
-- validateStatus()
-- validateTimeRange()
-- writeTasks()
-
-### Community 19 — zustand/create (19) (9 nodes, cohesion: 0.22)
+### Community 18 — zustand/create (18) (9 nodes, cohesion: 0.22)
 
 - updateStore
 - ../services/updateService/appVersion
@@ -362,7 +350,7 @@
 - ../types/update/UpdateStatus
 - zustand/create
 
-### Community 20 — createMemoryStorage() (8 nodes, cohesion: 0.25)
+### Community 19 — createMemoryStorage() (8 nodes, cohesion: 0.25)
 
 - taskService.test
 - createMemoryStorage()
@@ -373,7 +361,7 @@
 - vitest/it
 - vitest/vi
 
-### Community 21 — TasksPage() (8 nodes, cohesion: 0.25)
+### Community 20 — TasksPage() (8 nodes, cohesion: 0.25)
 
 - TasksPage
 - ../components/layout/TopBar/TopBar
@@ -384,7 +372,7 @@
 - ../stores/taskStore/useTaskStore
 - TasksPage()
 
-### Community 22 — UpsertSyncAccountInput (7 nodes, cohesion: 0.29)
+### Community 21 — UpsertSyncAccountInput (7 nodes, cohesion: 0.29)
 
 - sync
 - serde::{Deserialize, Serialize}
@@ -394,7 +382,7 @@
 - TaskSyncState
 - UpsertSyncAccountInput
 
-### Community 23 — CalendarView() (7 nodes, cohesion: 0.29)
+### Community 22 — CalendarView() (7 nodes, cohesion: 0.29)
 
 - CalendarView
 - CalendarView()
@@ -404,17 +392,7 @@
 - ../../types/task/Task
 - ./WeekView/WeekView
 
-### Community 24 — run() (7 nodes, cohesion: 0.29)
-
-- lib
-- AppState
-- rusqlite::Connection
-- std::path::PathBuf
-- std::sync::Mutex
-- tauri::Manager
-- run()
-
-### Community 25 — ../stores/taskStore/useTaskStore (7 nodes, cohesion: 0.29)
+### Community 23 — ../stores/taskStore/useTaskStore (7 nodes, cohesion: 0.29)
 
 - CalendarPage
 - ../components/calendar/CalendarView/CalendarView
@@ -424,7 +402,17 @@
 - ../stores/calendarStore/useCalendarStore
 - ../stores/taskStore/useTaskStore
 
-### Community 26 — list_pomodoro_sessions() (7 nodes, cohesion: 0.38)
+### Community 24 — update_settings() (7 nodes, cohesion: 0.38)
+
+- settings
+- get_settings()
+- crate::AppState
+- crate::models::settings::{AppSettings, UpdateSettingsInput}
+- crate::modules::settings as settings_module
+- tauri::State
+- update_settings()
+
+### Community 25 — list_pomodoro_sessions() (7 nodes, cohesion: 0.38)
 
 - pomodoro
 - create_pomodoro_session()
@@ -434,15 +422,24 @@
 - tauri::State
 - list_pomodoro_sessions()
 
-### Community 27 — update_settings() (7 nodes, cohesion: 0.38)
+### Community 26 — run() (7 nodes, cohesion: 0.29)
 
-- settings
-- get_settings()
-- crate::AppState
-- crate::models::settings::{AppSettings, UpdateSettingsInput}
-- crate::modules::settings as settings_module
-- tauri::State
-- update_settings()
+- lib
+- AppState
+- rusqlite::Connection
+- std::path::PathBuf
+- std::sync::Mutex
+- tauri::Manager
+- run()
+
+### Community 27 — TaskFilters() (6 nodes, cohesion: 0.33)
+
+- TaskFilters
+- ../../stores/taskStore/useTaskStore
+- ../../types/task/TaskPriorityFilter
+- ../../types/task/TaskSortKey
+- ../../types/task/TaskStatusFilter
+- TaskFilters()
 
 ### Community 28 — ../stores/settingsStore/useSettingsStore (6 nodes, cohesion: 0.33)
 
@@ -471,16 +468,7 @@
 - isCurrentMonth()
 - isToday()
 
-### Community 31 — TaskFilters() (6 nodes, cohesion: 0.33)
-
-- TaskFilters
-- ../../stores/taskStore/useTaskStore
-- ../../types/task/TaskPriorityFilter
-- ../../types/task/TaskSortKey
-- ../../types/task/TaskStatusFilter
-- TaskFilters()
-
-### Community 32 — UpdateTaskInput (5 nodes, cohesion: 0.40)
+### Community 31 — UpdateTaskInput (5 nodes, cohesion: 0.40)
 
 - task
 - CreateTaskInput
@@ -488,13 +476,21 @@
 - Task
 - UpdateTaskInput
 
-### Community 33 — UpdateSettingsInput (5 nodes, cohesion: 0.40)
+### Community 32 — UpdateSettingsInput (5 nodes, cohesion: 0.40)
 
 - settings
 - AppMetadata
 - AppSettings
 - serde::{Deserialize, Serialize}
 - UpdateSettingsInput
+
+### Community 33 — react/React (5 nodes, cohesion: 0.40)
+
+- main
+- ./App/App
+- ./index.css
+- react-dom/client/ReactDOM
+- react/React
 
 ### Community 34 — get_app_metadata() (5 nodes, cohesion: 0.40)
 
@@ -504,13 +500,12 @@
 - crate::models::settings::AppMetadata
 - tauri::State
 
-### Community 35 — react/React (5 nodes, cohesion: 0.40)
+### Community 35 — zustand/create (35) (4 nodes, cohesion: 0.50)
 
-- main
-- ./App/App
-- ./index.css
-- react-dom/client/ReactDOM
-- react/React
+- pomodoroStore
+- ../services/taskService/pomodoroService
+- ../types/task/PomodoroSession
+- zustand/create
 
 ### Community 36 — @vitejs/plugin-react/react (4 nodes, cohesion: 0.50)
 
@@ -519,67 +514,64 @@
 - vite/defineConfig
 - @vitejs/plugin-react/react
 
-### Community 37 — getTasksForDayHour() (4 nodes, cohesion: 0.50)
-
-- WeekView
-- getTasksForDayHour()
-- dayjs/dayjs
-- ../../types/task/Task
-
-### Community 38 — PomodoroSession (4 nodes, cohesion: 0.50)
-
-- pomodoro
-- CreatePomodoroSessionInput
-- serde::{Deserialize, Serialize}
-- PomodoroSession
-
-### Community 39 — getTasksForHour() (4 nodes, cohesion: 0.50)
-
-- DayView
-- getTasksForHour()
-- dayjs/dayjs
-- ../../types/task/Task
-
-### Community 40 — TaskList() (4 nodes, cohesion: 0.50)
+### Community 37 — TaskList() (4 nodes, cohesion: 0.50)
 
 - TaskList
 - ./TaskCard/TaskCard
 - ../../types/task/Task
 - TaskList()
 
-### Community 41 — zustand/create (4 nodes, cohesion: 0.50)
+### Community 38 — getTasksForHour() (4 nodes, cohesion: 0.50)
 
-- pomodoroStore
-- ../services/taskService/pomodoroService
-- ../types/task/PomodoroSession
-- zustand/create
+- DayView
+- getTasksForHour()
+- dayjs/dayjs
+- ../../types/task/Task
 
-### Community 42 — zustand/create (42) (3 nodes, cohesion: 0.67)
+### Community 39 — PomodoroSession (4 nodes, cohesion: 0.50)
+
+- pomodoro
+- CreatePomodoroSessionInput
+- serde::{Deserialize, Serialize}
+- PomodoroSession
+
+### Community 40 — getTasksForDayHour() (4 nodes, cohesion: 0.50)
+
+- WeekView
+- getTasksForDayHour()
+- dayjs/dayjs
+- ../../types/task/Task
+
+### Community 41 — zustand/create (41) (3 nodes, cohesion: 0.67)
 
 - calendarStore
 - dayjs/dayjs
 - zustand/create
 
-### Community 43 — Sidebar() (3 nodes, cohesion: 0.67)
+### Community 42 — Sidebar() (3 nodes, cohesion: 0.67)
 
 - Sidebar
 - react-router-dom/NavLink
 - Sidebar()
+
+### Community 43 — main() (43) (2 nodes, cohesion: 1.00)
+
+- main
+- main()
 
 ### Community 44 — TopBar() (2 nodes, cohesion: 1.00)
 
 - TopBar
 - TopBar()
 
-### Community 45 — main() (45) (2 nodes, cohesion: 1.00)
-
-- main
-- main()
-
-### Community 46 — main() (2 nodes, cohesion: 1.00)
+### Community 45 — main() (2 nodes, cohesion: 1.00)
 
 - build
 - main()
+
+### Community 46 — postcss.config (1 nodes, cohesion: 1.00)
+
+- postcss.config
 
 ### Community 47 — mod (47) (1 nodes, cohesion: 1.00)
 
@@ -597,21 +589,17 @@
 
 - update
 
-### Community 51 — mod (51) (1 nodes, cohesion: 1.00)
+### Community 51 — tailwind.config (1 nodes, cohesion: 1.00)
 
-- mod
+- tailwind.config
 
-### Community 52 — postcss.config (1 nodes, cohesion: 1.00)
-
-- postcss.config
-
-### Community 53 — task (1 nodes, cohesion: 1.00)
+### Community 52 — task (1 nodes, cohesion: 1.00)
 
 - task
 
-### Community 54 — tailwind.config (1 nodes, cohesion: 1.00)
+### Community 53 — mod (53) (1 nodes, cohesion: 1.00)
 
-- tailwind.config
+- mod
 
 ## 🕳️ Knowledge Gaps
 
@@ -639,10 +627,10 @@
 
 1. Can you verify the inferred relationships of 'create()' (degree 34)?
 1. Can you verify the inferred relationships of 'update()' (degree 33)?
-1. Can you verify the inferred relationships of 'memory_conn()' (degree 30)?
 1. Can you verify the inferred relationships of 'update_can_clear_nullable_fields()' (degree 30)?
+1. Can you verify the inferred relationships of 'memory_conn()' (degree 30)?
 1. What role does 'mod' play? It has no connections in the graph.
-1. What role does 'tailwind.config' play? It has no connections in the graph.
+1. What role does 'mod' play? It has no connections in the graph.
 1. What role does 'vite-env.d' play? It has no connections in the graph.
 
 ---
