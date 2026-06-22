@@ -8,15 +8,36 @@ import { SettingsPage } from './pages/SettingsPage';
 import { PomodoroPage } from './pages/PomodoroPage';
 import { CockpitPage } from './pages/CockpitPage';
 import { useUpdateStore } from './stores/updateStore';
+import { useTaskStore } from './stores/taskStore';
+import { listenForTasksChanged } from './services/appEvents';
 
 export default function App() {
   const checkForUpdates = useUpdateStore((state) => state.check);
+  const fetchTasks = useTaskStore((state) => state.fetchTasks);
   const isCockpit = typeof window !== 'undefined'
     && (window.location.search.includes('window=cockpit') || window.location.pathname === '/cockpit');
 
   useEffect(() => {
     if (!isCockpit) void checkForUpdates('startup');
   }, [checkForUpdates, isCockpit]);
+
+  useEffect(() => {
+    let cleanup: (() => void) | null = null;
+    let cancelled = false;
+    void listenForTasksChanged(() => {
+      void fetchTasks();
+    }).then((unlisten) => {
+      if (cancelled) {
+        unlisten();
+        return;
+      }
+      cleanup = unlisten;
+    });
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [fetchTasks]);
 
   if (isCockpit) {
     return <CockpitPage />;

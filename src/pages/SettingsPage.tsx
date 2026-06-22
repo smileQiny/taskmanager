@@ -5,6 +5,7 @@ import { usePomodoroStore } from '../stores/pomodoroStore';
 import { useUpdateStore } from '../stores/updateStore';
 import { AppUpdateInfo, UpdateStatus } from '../types/update';
 import { SyncAccount, SyncProvider } from '../types/task';
+import { minCockpitOpacity, maxCockpitOpacity } from '../utils/cockpitTransparency';
 
 const providerLabels: Record<SyncProvider, string> = {
   feishu: '飞书日历',
@@ -87,7 +88,7 @@ export function SettingsPage() {
               </label>
               <label className="form-control md:col-span-3">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <span className="label-text text-slate-500">驾驶舱透明度</span>
+                  <span className="label-text text-slate-500">驾驶舱背景不透明度</span>
                   <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-semibold tabular-nums text-blue-700">
                     {settings.cockpit_opacity}%
                   </span>
@@ -97,15 +98,15 @@ export function SettingsPage() {
                     aria-label="驾驶舱透明度"
                     className="range range-primary range-sm"
                     type="range"
-                    min={60}
-                    max={100}
+                    min={minCockpitOpacity}
+                    max={maxCockpitOpacity}
                     step={1}
                     value={settings.cockpit_opacity}
                     onChange={(event) => void updateCockpitOpacity(Number(event.target.value))}
                   />
                   <div className="mt-2 flex justify-between text-[11px] font-medium text-slate-400">
-                    <span>柔和</span>
-                    <span>清晰</span>
+                    <span>更透明</span>
+                    <span>更清晰</span>
                   </div>
                 </div>
               </label>

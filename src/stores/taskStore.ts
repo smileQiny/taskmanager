@@ -9,6 +9,7 @@ import {
   UpdateTaskInput,
 } from '../types/task';
 import { taskService } from '../services/taskService';
+import { broadcastTasksChanged } from '../services/appEvents';
 import { filterTasks, sortTasks } from '../utils/taskUtils';
 
 interface TaskStore {
@@ -63,6 +64,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       const task = await taskService.create(input);
       set((s) => ({ tasks: [task, ...s.tasks], selectedTaskId: task.id, draftDefaults: null, error: null }));
+      await broadcastTasksChanged();
       return task;
     } catch (e) {
       set({ error: String(e) });
@@ -78,6 +80,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         tasks: s.tasks.map((t) => (t.id === updated.id ? updated : t)),
         error: null,
       }));
+      await broadcastTasksChanged();
       return updated;
     } catch (e) {
       set({ error: String(e) });
@@ -93,6 +96,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         selectedTaskId: s.selectedTaskId === id ? null : s.selectedTaskId,
         error: null,
       }));
+      await broadcastTasksChanged();
     } catch (e) {
       set({ error: String(e) });
       throw e;

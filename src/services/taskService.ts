@@ -180,8 +180,8 @@ function updateLocalSettings(input: Partial<AppSettings>): AppSettings {
 }
 
 function validateCockpitOpacity(value: number): number {
-  if (!Number.isFinite(value) || value < 60 || value > 100) {
-    throw new Error('cockpit_opacity must be between 60 and 100');
+  if (!Number.isFinite(value) || value < 35 || value > 100) {
+    throw new Error('cockpit_opacity must be between 35 and 100');
   }
   return Math.round(value);
 }

@@ -11,6 +11,11 @@ body {
   background: #eef2f7;
 }
 
+html.cockpit-window,
+body.cockpit-window {
+  background: transparent;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #b8c5d6 transparent;

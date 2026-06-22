@@ -1,0 +1,25 @@
+import { describe, expect, it } from 'vitest';
+import { getCockpitTransparency } from './cockpitTransparency';
+
+describe('cockpit transparency', () => {
+  it('maps low slider values to see-through window surfaces', () => {
+    const transparent = getCockpitTransparency(35);
+
+    expect(transparent.shellBackground).toBe('rgba(246, 248, 252, 0.38)');
+    expect(transparent.panelBackground).toBe('rgba(255, 255, 255, 0.46)');
+    expect(transparent.headerBackground).toBe('rgba(255, 255, 255, 0.3)');
+  });
+
+  it('keeps full opacity crisp without using element opacity', () => {
+    const solid = getCockpitTransparency(100);
+
+    expect(solid.shellBackground).toBe('rgba(246, 248, 252, 0.95)');
+    expect(solid.panelBackground).toBe('rgba(255, 255, 255, 0.92)');
+    expect(solid.headerBackground).toBe('rgba(255, 255, 255, 0.82)');
+  });
+
+  it('clamps out-of-range values', () => {
+    expect(getCockpitTransparency(10).shellBackground).toBe(getCockpitTransparency(35).shellBackground);
+    expect(getCockpitTransparency(130).shellBackground).toBe(getCockpitTransparency(100).shellBackground);
+  });
+});

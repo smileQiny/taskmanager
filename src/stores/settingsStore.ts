@@ -7,6 +7,7 @@ import {
   SyncRunResult,
 } from '../types/task';
 import { appService, settingsService, syncService } from '../services/taskService';
+import { broadcastSettingsUpdated } from '../services/appEvents';
 
 interface SettingsStore {
   settings: AppSettings;
@@ -16,6 +17,7 @@ interface SettingsStore {
   loading: boolean;
   error: string | null;
   fetchSettings: () => Promise<void>;
+  applySettings: (settings: AppSettings) => void;
   updateSettings: (input: Partial<AppSettings>) => Promise<void>;
   toggleSyncAccount: (provider: SyncProvider, enabled: boolean) => Promise<void>;
   saveSyncAccountConfig: (provider: SyncProvider, config: string) => Promise<void>;
@@ -35,6 +37,11 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   loading: false,
   error: null,
 
+  applySettings: (settings) => {
+    set({ settings, error: null });
+    document.documentElement.setAttribute('data-theme', settings.theme);
+  },
+
   fetchSettings: async () => {
     set({ loading: true, error: null });
     try {
@@ -53,8 +60,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   updateSettings: async (input) => {
     try {
       const settings = await settingsService.update(input);
-      set({ settings, error: null });
-      document.documentElement.setAttribute('data-theme', settings.theme);
+      useSettingsStore.getState().applySettings(settings);
+      await broadcastSettingsUpdated(settings);
     } catch (e) {
       set({ error: String(e) });
       throw e;

@@ -28,10 +28,10 @@ describe('browser task service fallback', () => {
       cockpit_opacity: 92,
     });
 
-    const settings = await settingsService.update({ cockpit_opacity: 76 });
+    const settings = await settingsService.update({ cockpit_opacity: 35 });
 
-    expect(settings.cockpit_opacity).toBe(76);
-    expect((await settingsService.get()).cockpit_opacity).toBe(76);
+    expect(settings.cockpit_opacity).toBe(35);
+    expect((await settingsService.get()).cockpit_opacity).toBe(35);
   });
 });
 
