@@ -5,6 +5,8 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useTaskStore } from '../stores/taskStore';
 import { Task } from '../types/task';
 import { formatTaskTime, groupTasksForToday } from '../utils/taskUtils';
+import { listenForSettingsUpdates } from '../services/appEvents';
+import { getCockpitTransparency } from '../utils/cockpitTransparency';
 
 const priorityTone: Record<Task['priority'], string> = {
   high: 'border-rose-200 bg-rose-50 text-rose-600',
@@ -34,16 +36,48 @@ export function CockpitPage() {
   } = usePomodoroStore();
   const {
     settings,
+    applySettings,
     fetchSettings,
   } = useSettingsStore();
   const [title, setTitle] = useState('');
   const [isPinned, setIsPinned] = useState(true);
   const [windowError, setWindowError] = useState<string | null>(null);
+  const transparency = useMemo(
+    () => getCockpitTransparency(settings.cockpit_opacity),
+    [settings.cockpit_opacity],
+  );
 
   useEffect(() => {
     void fetchTasks();
     void fetchSettings();
   }, [fetchSettings, fetchTasks]);
+
+  useEffect(() => {
+    document.documentElement.classList.add('cockpit-window');
+    document.body.classList.add('cockpit-window');
+    return () => {
+      document.documentElement.classList.remove('cockpit-window');
+      document.body.classList.remove('cockpit-window');
+    };
+  }, []);
+
+  useEffect(() => {
+    let cleanup: (() => void) | null = null;
+    let cancelled = false;
+    void listenForSettingsUpdates((nextSettings) => {
+      applySettings(nextSettings);
+    }).then((unlisten) => {
+      if (cancelled) {
+        unlisten();
+        return;
+      }
+      cleanup = unlisten;
+    });
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, [applySettings]);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,15 +167,16 @@ export function CockpitPage() {
   return (
     <main className="h-screen overflow-hidden bg-transparent p-2 text-slate-900">
       <section
-        className="relative flex h-full cursor-move flex-col overflow-hidden rounded-[24px] border border-[#dbe5f1] bg-[#f6f8fc] shadow-[0_18px_48px_rgba(71,85,105,0.18)] transition-opacity duration-200"
-        style={{ opacity: settings.cockpit_opacity / 100 }}
+        className="relative flex h-full cursor-move flex-col overflow-hidden rounded-[24px] border border-white/45 shadow-[0_18px_48px_rgba(71,85,105,0.18)] transition-colors duration-200"
+        style={{ backgroundColor: transparency.shellBackground }}
         data-tauri-drag-region
         onMouseDown={(event) => void startDragging(event)}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(218,226,242,0.78),transparent_36%),radial-gradient(circle_at_96%_8%,rgba(214,235,229,0.52),transparent_34%)]" />
+        <div className="pointer-events-none absolute inset-0" style={{ background: transparency.glowBackground }} />
 
         <header
           className="relative h-11 shrink-0 select-none border-b border-slate-200/80"
+          style={{ backgroundColor: transparency.headerBackground }}
           data-tauri-drag-region
         >
           <div className="absolute left-3 top-2 z-10 flex items-center gap-1.5">
@@ -178,11 +213,11 @@ export function CockpitPage() {
 
         <div className="relative flex min-h-0 flex-1 flex-col gap-2 p-2.5">
           <div className="grid grid-cols-[1fr_82px] gap-2">
-            <div className="min-w-0 rounded-2xl border border-slate-200 bg-white/88 px-3 py-2 shadow-sm">
+            <div className="min-w-0 rounded-2xl border border-white/55 px-3 py-2 shadow-sm" style={{ backgroundColor: transparency.panelBackground }}>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-600">{dayjs().format('YYYY.MM.DD')}</p>
               <p className="mt-0.5 truncate text-base font-bold text-slate-900">{activeCount} 个待处理</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/76 px-3 py-2 text-right shadow-sm">
+            <div className="rounded-2xl border border-white/50 px-3 py-2 text-right shadow-sm" style={{ backgroundColor: transparency.panelSoftBackground }}>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">完成</p>
               <p className="mt-0.5 text-base font-bold text-blue-700">{doneToday}</p>
             </div>
@@ -191,6 +226,7 @@ export function CockpitPage() {
           <form className="flex h-10 gap-1.5" onSubmit={(event) => void submitTask(event)}>
             <input
               className="min-w-0 flex-1 rounded-full border border-slate-200 bg-white px-3 text-[13px] text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+              style={{ backgroundColor: transparency.controlBackground }}
               data-no-window-drag
               placeholder="快速添加今天的任务"
               value={title}
@@ -217,7 +253,7 @@ export function CockpitPage() {
             </div>
           )}
 
-          <section className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white/88 shadow-sm">
+          <section className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-white/55 shadow-sm" style={{ backgroundColor: transparency.panelBackground }}>
             <div className="flex h-8 items-center justify-between border-b border-slate-100 px-3">
               <p className="text-xs font-bold text-slate-700">任务队列</p>
               <span className="rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">当前</span>
@@ -241,15 +277,15 @@ export function CockpitPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white/92 px-3 py-2.5 shadow-sm">
+          <section className="rounded-2xl border border-white/55 px-3 py-2.5 shadow-sm" style={{ backgroundColor: transparency.panelBackground }}>
             <div className="flex items-center gap-3">
               <div
                 className="grid h-16 w-16 shrink-0 place-items-center rounded-full shadow-inner"
                 style={{
-                  background: `conic-gradient(#2f78d0 ${progress * 3.6}deg, #e6edf5 0deg)`,
+                  background: `conic-gradient(#2f78d0 ${progress * 3.6}deg, ${transparency.progressTrack} 0deg)`,
                 }}
               >
-                <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-white text-[13px] font-black tabular-nums text-slate-800 shadow-sm">
+                <div className="grid h-[52px] w-[52px] place-items-center rounded-full text-[13px] font-black tabular-nums text-slate-800 shadow-sm" style={{ backgroundColor: transparency.controlBackground }}>
                   {formatRemaining(remaining)}
                 </div>
               </div>
@@ -274,7 +310,7 @@ export function CockpitPage() {
                   <button className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white transition hover:bg-slate-700" data-no-window-drag onClick={running ? pause : start}>
                     {running ? '暂停' : '开始'}
                   </button>
-                  <button className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900" data-no-window-drag onClick={reset}>
+                  <button className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900" style={{ backgroundColor: transparency.controlBackground }} data-no-window-drag onClick={reset}>
                     重置
                   </button>
                   <button className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100" data-no-window-drag onClick={() => void complete()}>

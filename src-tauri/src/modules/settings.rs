@@ -38,8 +38,8 @@ pub fn update(conn: &Connection, input: UpdateSettingsInput) -> Result<AppSettin
         set_value(conn, KEY_POMODORO_MINUTES, &minutes.to_string())?;
     }
     if let Some(opacity) = input.cockpit_opacity {
-        if !(60..=100).contains(&opacity) {
-            bail!("cockpit_opacity must be between 60 and 100");
+        if !(35..=100).contains(&opacity) {
+            bail!("cockpit_opacity must be between 35 and 100");
         }
         set_value(conn, KEY_COCKPIT_OPACITY, &opacity.to_string())?;
     }
@@ -100,7 +100,7 @@ mod tests {
                 theme: Some("dark".to_string()),
                 default_calendar_view: Some("week".to_string()),
                 pomodoro_minutes: Some(45),
-                cockpit_opacity: Some(76),
+                cockpit_opacity: Some(35),
             },
         )
         .expect("settings should update");
@@ -108,7 +108,7 @@ mod tests {
         assert_eq!(updated.theme, "dark");
         assert_eq!(updated.default_calendar_view, "week");
         assert_eq!(updated.pomodoro_minutes, 45);
-        assert_eq!(updated.cockpit_opacity, 76);
+        assert_eq!(updated.cockpit_opacity, 35);
     }
 
     #[test]
