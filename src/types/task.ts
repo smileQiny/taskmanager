@@ -57,6 +57,7 @@ export interface AppSettings {
   theme: 'light' | 'dark';
   default_calendar_view: 'month' | 'week' | 'day';
   pomodoro_minutes: number;
+  cockpit_opacity: number;
 }
 
 export interface PomodoroSession {

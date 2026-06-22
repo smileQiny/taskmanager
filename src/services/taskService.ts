@@ -154,17 +154,36 @@ function deleteLocalTask(id: string): boolean {
 }
 
 function readSettings(): AppSettings {
-  return readJson<AppSettings>(settingsKey, {
+  return {
+    ...defaultSettings(),
+    ...readJson<Partial<AppSettings>>(settingsKey, {}),
+  };
+}
+
+function defaultSettings(): AppSettings {
+  return {
     theme: 'light',
     default_calendar_view: 'month',
     pomodoro_minutes: 25,
-  });
+    cockpit_opacity: 92,
+  };
 }
 
 function updateLocalSettings(input: Partial<AppSettings>): AppSettings {
-  const settings = { ...readSettings(), ...input };
+  const settings = {
+    ...readSettings(),
+    ...input,
+    cockpit_opacity: validateCockpitOpacity(input.cockpit_opacity ?? readSettings().cockpit_opacity),
+  };
   localStorage.setItem(settingsKey, JSON.stringify(settings));
   return settings;
+}
+
+function validateCockpitOpacity(value: number): number {
+  if (!Number.isFinite(value) || value < 60 || value > 100) {
+    throw new Error('cockpit_opacity must be between 60 and 100');
+  }
+  return Math.round(value);
 }
 
 function readPomodoroSessions(): PomodoroSession[] {

@@ -27,6 +27,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     theme: 'light',
     default_calendar_view: 'month',
     pomodoro_minutes: 25,
+    cockpit_opacity: 92,
   },
   metadata: null,
   syncAccounts: [],
