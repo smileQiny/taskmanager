@@ -18,11 +18,23 @@ const packagePath = join(root, 'package.json');
 const packageLockPath = join(root, 'package-lock.json');
 const tauriConfigPath = join(root, 'src-tauri', 'tauri.conf.json');
 const cargoTomlPath = join(root, 'src-tauri', 'Cargo.toml');
+const cargoLockPath = join(root, 'src-tauri', 'Cargo.lock');
 
 const packageJson = readJson(packagePath);
 const packageLock = readJson(packageLockPath);
 const tauriConfig = readJson(tauriConfigPath);
 const cargoToml = readFileSync(cargoTomlPath, 'utf8');
+const cargoLock = readFileSync(cargoLockPath, 'utf8');
+const cargoPackageName = matchRequired(
+  cargoToml,
+  /^\[package\][\s\S]*?^name\s*=\s*"([^"]+)"/m,
+  'Could not find [package] name in src-tauri/Cargo.toml',
+);
+const cargoTomlVersion = matchRequired(
+  cargoToml,
+  /^\[package\][\s\S]*?^version\s*=\s*"([^"]+)"/m,
+  'Could not find [package] version in src-tauri/Cargo.toml',
+);
 
 if (checkOnly) {
   const versions = {
@@ -30,7 +42,8 @@ if (checkOnly) {
     'package-lock.json': packageLock.version,
     'package-lock root package': packageLock.packages?.['']?.version,
     'tauri.conf.json': tauriConfig.version,
-    'Cargo.toml': cargoToml.match(/^\[package\][\s\S]*?^version\s*=\s*"([^"]+)"/m)?.[1],
+    'Cargo.toml': cargoTomlVersion,
+    'Cargo.lock': findCargoLockPackageVersion(cargoLock, cargoPackageName),
   };
   const uniqueVersions = new Set(Object.values(versions));
   if (uniqueVersions.size !== 1) {
@@ -53,18 +66,16 @@ tauriConfig.version = version;
 
 const nextCargoToml = cargoToml.replace(
   /^(\[package\][\s\S]*?^version\s*=\s*")[^"]+(")/m,
-  `$1${version}$2`,
+  (_match, prefix, suffix) => `${prefix}${version}${suffix}`,
 );
 
-if (nextCargoToml === cargoToml) {
-  console.error('Could not find [package] version in src-tauri/Cargo.toml');
-  process.exit(1);
-}
+const nextCargoLock = replaceCargoLockPackageVersion(cargoLock, cargoPackageName, version);
 
 writeJson(packagePath, packageJson);
 writeJson(packageLockPath, packageLock);
 writeJson(tauriConfigPath, tauriConfig);
 writeFileSync(cargoTomlPath, nextCargoToml);
+writeFileSync(cargoLockPath, nextCargoLock);
 console.log(`Set project version to ${version}`);
 
 function readJson(path) {
@@ -73,4 +84,36 @@ function readJson(path) {
 
 function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function matchRequired(contents, pattern, errorMessage) {
+  const match = contents.match(pattern);
+  if (!match) {
+    console.error(errorMessage);
+    process.exit(1);
+  }
+  return match[1];
+}
+
+function findCargoLockPackageVersion(contents, packageName) {
+  return contents.match(cargoLockPackagePattern(packageName))?.groups?.version;
+}
+
+function replaceCargoLockPackageVersion(contents, packageName, nextVersion) {
+  const pattern = cargoLockPackagePattern(packageName);
+  if (!pattern.test(contents)) {
+    console.error(`Could not find ${packageName} package version in src-tauri/Cargo.lock`);
+    process.exit(1);
+  }
+  return contents.replace(pattern, `$<prefix>${nextVersion}$<suffix>`);
+}
+
+function cargoLockPackagePattern(packageName) {
+  return new RegExp(
+    `(?<prefix>\\[\\[package\\]\\]\\nname = "${escapeRegExp(packageName)}"\\nversion = ")(?<version>[^"]+)(?<suffix>")`,
+  );
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
