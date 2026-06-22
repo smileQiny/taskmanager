@@ -6,6 +6,7 @@ use crate::models::settings::{AppSettings, UpdateSettingsInput};
 const KEY_THEME: &str = "theme";
 const KEY_DEFAULT_CALENDAR_VIEW: &str = "default_calendar_view";
 const KEY_POMODORO_MINUTES: &str = "pomodoro_minutes";
+const KEY_COCKPIT_OPACITY: &str = "cockpit_opacity";
 
 pub fn get(conn: &Connection) -> Result<AppSettings> {
     Ok(AppSettings {
@@ -15,6 +16,9 @@ pub fn get(conn: &Connection) -> Result<AppSettings> {
         pomodoro_minutes: get_value(conn, KEY_POMODORO_MINUTES)?
             .and_then(|value| value.parse::<i64>().ok())
             .unwrap_or(25),
+        cockpit_opacity: get_value(conn, KEY_COCKPIT_OPACITY)?
+            .and_then(|value| value.parse::<i64>().ok())
+            .unwrap_or(92),
     })
 }
 
@@ -32,6 +36,12 @@ pub fn update(conn: &Connection, input: UpdateSettingsInput) -> Result<AppSettin
             bail!("pomodoro_minutes must be between 5 and 120");
         }
         set_value(conn, KEY_POMODORO_MINUTES, &minutes.to_string())?;
+    }
+    if let Some(opacity) = input.cockpit_opacity {
+        if !(60..=100).contains(&opacity) {
+            bail!("cockpit_opacity must be between 60 and 100");
+        }
+        set_value(conn, KEY_COCKPIT_OPACITY, &opacity.to_string())?;
     }
     get(conn)
 }
@@ -80,6 +90,7 @@ mod tests {
                 theme: "light".to_string(),
                 default_calendar_view: "month".to_string(),
                 pomodoro_minutes: 25,
+                cockpit_opacity: 92,
             }
         );
 
@@ -89,6 +100,7 @@ mod tests {
                 theme: Some("dark".to_string()),
                 default_calendar_view: Some("week".to_string()),
                 pomodoro_minutes: Some(45),
+                cockpit_opacity: Some(76),
             },
         )
         .expect("settings should update");
@@ -96,6 +108,7 @@ mod tests {
         assert_eq!(updated.theme, "dark");
         assert_eq!(updated.default_calendar_view, "week");
         assert_eq!(updated.pomodoro_minutes, 45);
+        assert_eq!(updated.cockpit_opacity, 76);
     }
 
     #[test]
@@ -107,10 +120,28 @@ mod tests {
                 theme: None,
                 default_calendar_view: None,
                 pomodoro_minutes: Some(1),
+                cockpit_opacity: None,
             },
         )
         .expect_err("invalid duration should fail");
 
         assert!(err.to_string().contains("pomodoro_minutes"));
+    }
+
+    #[test]
+    fn settings_reject_invalid_cockpit_opacity() {
+        let conn = db::init_in_memory().expect("database should initialize");
+        let err = update(
+            &conn,
+            UpdateSettingsInput {
+                theme: None,
+                default_calendar_view: None,
+                pomodoro_minutes: None,
+                cockpit_opacity: Some(20),
+            },
+        )
+        .expect_err("invalid cockpit opacity should fail");
+
+        assert!(err.to_string().contains("cockpit_opacity"));
     }
 }
