@@ -5,17 +5,17 @@ describe('cockpit transparency', () => {
   it('maps low slider values to see-through window surfaces', () => {
     const transparent = getCockpitTransparency(35);
 
-    expect(transparent.shellBackground).toBe('rgba(246, 248, 252, 0.38)');
-    expect(transparent.panelBackground).toBe('rgba(255, 255, 255, 0.46)');
-    expect(transparent.headerBackground).toBe('rgba(255, 255, 255, 0.3)');
+    expect(transparent.shellBackground).toBe('rgba(33, 37, 39, 0.5)');
+    expect(transparent.panelBackground).toBe('rgba(5, 9, 12, 0.62)');
+    expect(transparent.headerBackground).toBe('rgba(14, 18, 21, 0.48)');
   });
 
   it('keeps full opacity crisp without using element opacity', () => {
     const solid = getCockpitTransparency(100);
 
-    expect(solid.shellBackground).toBe('rgba(246, 248, 252, 0.95)');
-    expect(solid.panelBackground).toBe('rgba(255, 255, 255, 0.92)');
-    expect(solid.headerBackground).toBe('rgba(255, 255, 255, 0.82)');
+    expect(solid.shellBackground).toBe('rgba(33, 37, 39, 0.92)');
+    expect(solid.panelBackground).toBe('rgba(5, 9, 12, 0.92)');
+    expect(solid.headerBackground).toBe('rgba(14, 18, 21, 0.82)');
   });
 
   it('clamps out-of-range values', () => {
