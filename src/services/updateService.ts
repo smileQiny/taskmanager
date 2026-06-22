@@ -2,8 +2,8 @@ import { ReleaseAsset, AppUpdateInfo, InstallUpdateResult } from '../types/updat
 
 const githubOwner = 'smileQiny';
 const githubRepo = 'taskmanager';
-const githubApiUrl = `https://api.github.com/repos/${githubOwner}/${githubRepo}/releases/latest`;
 const githubLatestReleaseUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest`;
+const githubLatestJsonUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest/download/latest.json`;
 
 interface GitHubReleaseAsset {
   name: string;
@@ -20,6 +20,18 @@ interface GitHubRelease {
   assets?: GitHubReleaseAsset[];
 }
 
+interface TauriUpdaterPlatform {
+  signature?: string;
+  url: string;
+}
+
+interface TauriUpdaterManifest {
+  version: string;
+  notes?: string | null;
+  pub_date?: string | null;
+  platforms?: Record<string, TauriUpdaterPlatform>;
+}
+
 interface CheckForUpdatesOptions {
   currentVersion?: string;
   apiUrl?: string;
@@ -32,25 +44,80 @@ interface ParsedVersion {
 
 export const appVersion = __APP_VERSION__;
 export const releasesUrl = githubLatestReleaseUrl;
+export const latestJsonUrl = githubLatestJsonUrl;
 
 export async function checkForUpdates(options: CheckForUpdatesOptions = {}): Promise<AppUpdateInfo> {
   const currentVersion = normalizeVersion(options.currentVersion ?? appVersion);
-  const response = await fetch(options.apiUrl ?? githubApiUrl, {
+  if (hasTauriRuntime() && !options.apiUrl) {
+    return checkNativeUpdater(currentVersion);
+  }
+  if (!hasTauriRuntime() && !options.apiUrl) {
+    return {
+      currentVersion,
+      latestVersion: currentVersion,
+      releaseName: `TaskManager v${currentVersion}`,
+      releaseUrl: githubLatestReleaseUrl,
+      publishedAt: null,
+      assets: [],
+      preferredAsset: null,
+      isUpdateAvailable: false,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+
+  const response = await fetch(options.apiUrl ?? githubLatestJsonUrl, {
     headers: {
-      Accept: 'application/vnd.github+json',
+      Accept: 'application/json',
     },
   });
 
   if (response.status === 404) {
-    throw new Error('没有找到 GitHub Release。请先发布一个非草稿版本。');
+    throw new Error('没有找到更新元数据。请确认 GitHub Release 已上传 latest.json。');
   }
 
   if (!response.ok) {
     throw new Error(`GitHub 更新检查失败：HTTP ${response.status}`);
   }
 
-  const release = await response.json() as GitHubRelease;
-  const latestVersion = normalizeVersion(release.tag_name);
+  const payload = await response.json() as GitHubRelease | TauriUpdaterManifest;
+  const release = isTauriUpdaterManifest(payload)
+    ? mapUpdaterManifestToRelease(payload)
+    : mapGitHubRelease(payload);
+  const latestVersion = normalizeVersion(release.tagName);
+
+  return {
+    currentVersion,
+    latestVersion,
+    releaseName: release.name || `TaskManager v${latestVersion}`,
+    releaseUrl: release.htmlUrl,
+    publishedAt: release.publishedAt,
+    assets: release.assets,
+    preferredAsset: getPreferredInstallAsset(release.assets),
+    isUpdateAvailable: compareVersions(latestVersion, currentVersion) > 0,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+async function checkNativeUpdater(currentVersion: string): Promise<AppUpdateInfo> {
+  const { check } = await import('@tauri-apps/plugin-updater');
+  const update = await check();
+  const latestVersion = normalizeVersion(update?.version ?? currentVersion);
+  const assets = mapNativeUpdateAssets(update?.rawJson);
+
+  return {
+    currentVersion,
+    latestVersion,
+    releaseName: update ? `TaskManager v${latestVersion}` : `TaskManager v${currentVersion}`,
+    releaseUrl: getReleaseUrlFromAssets(assets) ?? `${githubLatestReleaseUrl.replace('/latest', `/tag/v${latestVersion}`)}`,
+    publishedAt: update?.date ?? null,
+    assets,
+    preferredAsset: getPreferredInstallAsset(assets),
+    isUpdateAvailable: Boolean(update) && compareVersions(latestVersion, currentVersion) > 0,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
+function mapGitHubRelease(release: GitHubRelease) {
   const assets = (release.assets ?? [])
     .map((asset) => ({
       name: asset.name,
@@ -61,16 +128,61 @@ export async function checkForUpdates(options: CheckForUpdatesOptions = {}): Pro
     .filter(isInstallerAsset);
 
   return {
-    currentVersion,
-    latestVersion,
-    releaseName: release.name || release.tag_name,
-    releaseUrl: release.html_url,
+    tagName: release.tag_name,
+    name: release.name || release.tag_name,
+    htmlUrl: release.html_url,
     publishedAt: release.published_at ?? null,
     assets,
-    preferredAsset: getPreferredInstallAsset(assets),
-    isUpdateAvailable: compareVersions(latestVersion, currentVersion) > 0,
-    checkedAt: new Date().toISOString(),
   };
+}
+
+function mapUpdaterManifestToRelease(manifest: TauriUpdaterManifest) {
+  const assets = mapUpdaterPlatforms(manifest.platforms)
+    .filter(isInstallerAsset);
+  const tagName = `v${normalizeVersion(manifest.version)}`;
+
+  return {
+    tagName,
+    name: `TaskManager ${tagName}`,
+    htmlUrl: getReleaseUrlFromAssets(assets) ?? `${githubLatestReleaseUrl.replace('/latest', `/tag/${tagName}`)}`,
+    publishedAt: manifest.pub_date ?? null,
+    assets,
+  };
+}
+
+function mapNativeUpdateAssets(rawJson: Record<string, unknown> | undefined): ReleaseAsset[] {
+  const platforms = rawJson?.platforms;
+  return mapUpdaterPlatforms(isUpdaterPlatforms(platforms) ? platforms : undefined)
+    .filter(isInstallerAsset);
+}
+
+function mapUpdaterPlatforms(platforms: Record<string, TauriUpdaterPlatform> | undefined): ReleaseAsset[] {
+  return Object.values(platforms ?? {}).reduce<ReleaseAsset[]>((items, platform) => {
+    if (!platform.url || items.some((asset) => asset.downloadUrl === platform.url)) {
+      return items;
+    }
+    items.push({
+      name: getFileNameFromUrl(platform.url),
+      downloadUrl: platform.url,
+      size: 0,
+    });
+    return items;
+  }, []);
+}
+
+function isUpdaterPlatforms(value: unknown): value is Record<string, TauriUpdaterPlatform> {
+  return value !== null
+    && typeof value === 'object'
+    && Object.values(value).every((platform) => (
+      Boolean(platform)
+      && typeof platform === 'object'
+      && typeof (platform as TauriUpdaterPlatform).url === 'string'
+    ));
+}
+
+function isTauriUpdaterManifest(payload: GitHubRelease | TauriUpdaterManifest): payload is TauriUpdaterManifest {
+  return typeof (payload as TauriUpdaterManifest).version === 'string'
+    && typeof (payload as GitHubRelease).tag_name !== 'string';
 }
 
 export async function openExternalUrl(url: string): Promise<void> {
@@ -197,4 +309,26 @@ function hasTauriRuntime(): boolean {
 function isInstallerAsset(asset: ReleaseAsset): boolean {
   const name = asset.name.toLowerCase();
   return !name.endsWith('.sig') && !name.endsWith('.json') && !name.endsWith('.sha256');
+}
+
+function getFileNameFromUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const pathname = parts[parts.length - 1];
+    return pathname ? decodeURIComponent(pathname) : url;
+  } catch {
+    const parts = url.split('/').filter(Boolean);
+    return parts[parts.length - 1] ?? url;
+  }
+}
+
+function getReleaseUrlFromAssets(assets: ReleaseAsset[]): string | null {
+  for (const asset of assets) {
+    const match = asset.downloadUrl.match(/github\.com\/([^/]+)\/([^/]+)\/releases\/download\/([^/]+)/);
+    if (!match) continue;
+    const [, owner, repo, tag] = match;
+    return `https://github.com/${owner}/${repo}/releases/tag/${tag}`;
+  }
+  return null;
 }
