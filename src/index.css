@@ -3,14 +3,21 @@
 @tailwind utilities;
 
 html {
-  background: #f1f5f9;
+  background: #eef2f7;
 }
 
 body {
   margin: 0;
+  background: #eef2f7;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: #b8c5d6 transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
 }

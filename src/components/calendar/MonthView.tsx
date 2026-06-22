@@ -36,9 +36,9 @@ export function MonthView({ selectedDate, tasks, onDateClick, onTaskClick }: Mon
   const isCurrentMonth = (date: Dayjs) => date.month() === selectedDate.month();
 
   return (
-    <div className="grid h-full grid-cols-7 gap-px overflow-hidden rounded-md border border-slate-200 bg-slate-200">
+    <div className="grid h-full grid-cols-7 gap-px overflow-hidden rounded-xl border border-[#dbe5f1] bg-[#dbe5f1] shadow-sm">
       {['日', '一', '二', '三', '四', '五', '六'].map((d) => (
-        <div key={d} className="bg-slate-50 py-2 text-center text-xs font-medium text-slate-500">{d}</div>
+        <div key={d} className="bg-white/72 py-2 text-center text-xs font-medium text-slate-500">{d}</div>
       ))}
       {weeks.flat().map((date, i) => {
         const dayTasks = getTasksForDay(date);
@@ -46,18 +46,18 @@ export function MonthView({ selectedDate, tasks, onDateClick, onTaskClick }: Mon
           <div
             key={i}
             onClick={() => onDateClick(date)}
-            className={`min-h-[96px] cursor-pointer bg-white p-2 transition hover:bg-teal-50/60
+            className={`min-h-[96px] cursor-pointer bg-white/88 p-2 transition hover:bg-blue-50/60
               ${!isCurrentMonth(date) ? 'opacity-40' : ''}`}
           >
             <span className={`inline-block h-6 w-6 rounded-full text-center text-xs leading-6
-              ${isToday(date) ? 'bg-slate-950 text-white' : 'text-slate-600'}`}>
+              ${isToday(date) ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>
               {date.date()}
             </span>
             <div className="mt-1 space-y-0.5">
               {dayTasks.slice(0, 3).map((t) => (
                 <button
                   key={t.id}
-                  className="block w-full truncate rounded bg-teal-50 px-1 py-0.5 text-left text-[10px] text-teal-700"
+                  className="block w-full truncate rounded bg-blue-50 px-1 py-0.5 text-left text-[10px] text-blue-700"
                   onClick={(event) => {
                     event.stopPropagation();
                     onTaskClick(t);

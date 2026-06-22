@@ -24,9 +24,9 @@ export function DayView({ selectedDate, tasks, onSlotClick, onTaskClick }: DayVi
     dayjs.unix(t.start_time).isSame(selectedDate, 'day'));
 
   return (
-    <div className="flex h-full flex-col overflow-auto rounded-md border border-slate-200 bg-white">
+    <div className="flex h-full flex-col overflow-auto rounded-xl border border-[#dbe5f1] bg-white/88 shadow-sm">
       {allDayTasks.length > 0 && (
-        <div className="border-b border-slate-200 bg-slate-50 p-2">
+        <div className="border-b border-[#dbe5f1] bg-slate-50/90 p-2">
           <span className="mr-2 text-xs text-slate-500">全天</span>
           {allDayTasks.map((t) => (
             <button key={t.id} className="badge badge-primary badge-sm mr-1" onClick={() => onTaskClick(t)}>{t.title}</button>
@@ -41,11 +41,11 @@ export function DayView({ selectedDate, tasks, onSlotClick, onTaskClick }: DayVi
               <div className="w-16 shrink-0 pr-3 pt-1 text-right text-xs text-slate-400">
                 {hour.toString().padStart(2, '0')}:00
               </div>
-              <div className="flex-1 border-l border-slate-100 p-1 hover:bg-teal-50/40" onClick={() => onSlotClick(selectedDate.hour(hour).minute(0).second(0))}>
+              <div className="flex-1 border-l border-slate-100 p-1 hover:bg-blue-50/40" onClick={() => onSlotClick(selectedDate.hour(hour).minute(0).second(0))}>
                 {hourTasks.map((t) => (
                   <button
                     key={t.id}
-                    className="mb-1 block w-full rounded bg-teal-50 px-2 py-1 text-left text-sm text-teal-700"
+                    className="mb-1 block w-full rounded bg-blue-50 px-2 py-1 text-left text-sm text-blue-700"
                     onClick={(event) => {
                       event.stopPropagation();
                       onTaskClick(t);
