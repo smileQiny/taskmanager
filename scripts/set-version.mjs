@@ -10,7 +10,7 @@ const versionPattern = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
 
 if (!checkOnly && (!version || !versionPattern.test(version))) {
   console.error('Usage: npm run version:set -- <semver>');
-  console.error('Example: npm run version:set -- 0.2.0');
+  console.error('Example: npm run version:set -- 0.2.1');
   process.exit(1);
 }
 
