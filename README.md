@@ -117,4 +117,4 @@ git tag v<next-version>
 git push origin main v<next-version>
 ```
 
-Pushing a `v*` tag runs `.github/workflows/build.yml`, builds macOS, Windows, and Linux installers with `tauri-apps/tauri-action`, signs updater artifacts, uploads `latest.json`, and publishes everything to the GitHub Release. The app's update check only sees published releases, so keep the tag version aligned with `package.json`.
+Pushing a `v*` tag runs `.github/workflows/build.yml`, builds macOS, Windows, and Linux installers with `tauri-apps/tauri-action`, signs updater artifacts, uploads `latest.json`, and publishes everything to the GitHub Release. Normal branch and PR builds merge `src-tauri/tauri.ci.conf.json` so they do not need updater signing secrets. The app's update check only sees published releases, so keep the tag version aligned with `package.json`.

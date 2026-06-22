@@ -110,7 +110,7 @@ function replaceCargoLockPackageVersion(contents, packageName, nextVersion) {
 
 function cargoLockPackagePattern(packageName) {
   return new RegExp(
-    `(?<prefix>\\[\\[package\\]\\]\\nname = "${escapeRegExp(packageName)}"\\nversion = ")(?<version>[^"]+)(?<suffix>")`,
+    `(?<prefix>\\[\\[package\\]\\]\\r?\\nname = "${escapeRegExp(packageName)}"\\r?\\nversion = ")(?<version>[^"]+)(?<suffix>")`,
   );
 }
 
