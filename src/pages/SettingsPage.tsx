@@ -38,10 +38,11 @@ export function SettingsPage() {
   const {
     currentVersion,
     release,
+    installResult,
     status: updateStatus,
     error: updateError,
     check: checkForUpdates,
-    openPreferredDownload,
+    installLatestUpdate,
     openReleasePage,
   } = useUpdateStore();
 
@@ -94,11 +95,12 @@ export function SettingsPage() {
           <UpdateSection
             currentVersion={currentVersion}
             release={release}
+            installResult={installResult}
             status={updateStatus}
             error={updateError}
             onCheck={() => void checkForUpdates('manual')}
             onOpenRelease={() => void openReleasePage()}
-            onDownload={() => void openPreferredDownload()}
+            onInstall={() => void installLatestUpdate()}
           />
 
           <section className="rounded-xl border border-[#dbe5f1] bg-white/86 p-5 shadow-sm">
@@ -142,22 +144,25 @@ export function SettingsPage() {
 function UpdateSection({
   currentVersion,
   release,
+  installResult,
   status,
   error,
   onCheck,
   onOpenRelease,
-  onDownload,
+  onInstall,
 }: {
   currentVersion: string;
   release: AppUpdateInfo | null;
+  installResult: { message: string } | null;
   status: UpdateStatus;
   error: string | null;
   onCheck: () => void;
   onOpenRelease: () => void;
-  onDownload: () => void;
+  onInstall: () => void;
 }) {
   const isChecking = status === 'checking';
-  const canDownload = status === 'update_available';
+  const isInstalling = status === 'installing';
+  const canInstall = status === 'update_available' || status === 'update_handled';
 
   return (
     <section className="overflow-hidden rounded-xl border border-[#dbe5f1] bg-white/86 shadow-sm">
@@ -169,15 +174,15 @@ function UpdateSection({
               <span className={updateBadgeClass(status)}>{updateStatusLabel(status)}</span>
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              启动时自动检查 GitHub 最新安装包；更新需要下载并重新安装。
+              启动时自动检查 GitHub 最新版本；点击后会下载、安装并重启应用。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button className="btn btn-sm border-slate-200 bg-white/90" onClick={onCheck} disabled={isChecking}>
+            <button className="btn btn-sm border-slate-200 bg-white/90" onClick={onCheck} disabled={isChecking || isInstalling}>
               {isChecking ? '检查中...' : '检查更新'}
             </button>
-            <button className="btn btn-primary btn-sm" onClick={onDownload} disabled={!canDownload}>
-              下载安装包
+            <button className="btn btn-primary btn-sm" onClick={onInstall} disabled={!canInstall || isInstalling}>
+              {isInstalling ? '下载中...' : '下载并安装'}
             </button>
           </div>
         </div>
@@ -188,7 +193,7 @@ function UpdateSection({
         <VersionMetric
           label="最新版本"
           value={release ? `v${release.latestVersion}` : (isChecking ? '检查中...' : '未检查')}
-          accent={canDownload}
+          accent={canInstall}
         />
       </div>
 
@@ -212,6 +217,12 @@ function UpdateSection({
       {error && (
         <div className="border-t border-rose-100 bg-rose-50 px-5 py-3 text-sm text-rose-700">
           {error}
+        </div>
+      )}
+
+      {status === 'update_handled' && installResult && (
+        <div className="border-t border-emerald-100 bg-emerald-50 px-5 py-3 text-sm text-emerald-800">
+          <p>{installResult.message}</p>
         </div>
       )}
     </section>
@@ -314,6 +325,8 @@ function updateStatusLabel(status: UpdateStatus): string {
     checking: '检查中',
     update_available: '有新版本',
     up_to_date: '已是最新',
+    installing: '下载中',
+    update_handled: '更新已处理',
     error: '检查失败',
   }[status];
 }
@@ -321,8 +334,10 @@ function updateStatusLabel(status: UpdateStatus): string {
 function updateBadgeClass(status: UpdateStatus): string {
   const base = 'rounded px-2 py-0.5 text-xs';
   if (status === 'update_available') return `${base} bg-emerald-50 text-emerald-700`;
+  if (status === 'update_handled') return `${base} bg-emerald-50 text-emerald-700`;
   if (status === 'error') return `${base} bg-rose-50 text-rose-700`;
   if (status === 'checking') return `${base} bg-sky-50 text-sky-700`;
+  if (status === 'installing') return `${base} bg-sky-50 text-sky-700`;
   return `${base} bg-slate-100/90 text-slate-600`;
 }
 

@@ -17,6 +17,11 @@ export interface AppUpdateInfo {
   checkedAt: string;
 }
 
+export interface InstallUpdateResult {
+  action: string;
+  message: string;
+}
+
 export type UpdateCheckSource = 'startup' | 'manual';
 
-export type UpdateStatus = 'idle' | 'checking' | 'update_available' | 'up_to_date' | 'error';
+export type UpdateStatus = 'idle' | 'checking' | 'update_available' | 'up_to_date' | 'installing' | 'update_handled' | 'error';

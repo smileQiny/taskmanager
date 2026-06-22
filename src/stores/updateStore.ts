@@ -2,25 +2,28 @@ import { create } from 'zustand';
 import {
   appVersion,
   checkForUpdates,
+  installUpdateFromRelease,
   openExternalUrl,
   releasesUrl,
 } from '../services/updateService';
-import { AppUpdateInfo, UpdateCheckSource, UpdateStatus } from '../types/update';
+import { AppUpdateInfo, InstallUpdateResult, UpdateCheckSource, UpdateStatus } from '../types/update';
 
 interface UpdateStore {
   currentVersion: string;
   release: AppUpdateInfo | null;
+  installResult: InstallUpdateResult | null;
   status: UpdateStatus;
   error: string | null;
   startupChecked: boolean;
   check: (source?: UpdateCheckSource) => Promise<AppUpdateInfo | null>;
   openReleasePage: () => Promise<void>;
-  openPreferredDownload: () => Promise<void>;
+  installLatestUpdate: () => Promise<InstallUpdateResult | null>;
 }
 
 export const useUpdateStore = create<UpdateStore>((set, get) => ({
   currentVersion: appVersion,
   release: null,
+  installResult: null,
   status: 'idle',
   error: null,
   startupChecked: false,
@@ -33,6 +36,7 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
     set({
       status: 'checking',
       error: null,
+      installResult: null,
       startupChecked: source === 'startup' ? true : current.startupChecked,
     });
 
@@ -57,8 +61,30 @@ export const useUpdateStore = create<UpdateStore>((set, get) => ({
     await openExternalUrl(get().release?.releaseUrl ?? releasesUrl);
   },
 
-  openPreferredDownload: async () => {
+  installLatestUpdate: async () => {
     const release = get().release;
-    await openExternalUrl(release?.preferredAsset?.downloadUrl ?? release?.releaseUrl ?? releasesUrl);
+    if (!release?.isUpdateAvailable) return null;
+
+    set({
+      status: 'installing',
+      error: null,
+      installResult: null,
+    });
+
+    try {
+      const result = await installUpdateFromRelease(release);
+      set({
+        status: result.action === 'up_to_date' ? 'up_to_date' : 'update_handled',
+        installResult: result,
+        error: null,
+      });
+      return result;
+    } catch (error) {
+      set({
+        status: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
   },
 }));
