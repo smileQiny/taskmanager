@@ -1,10 +1,9 @@
-import { ReleaseAsset, AppUpdateInfo } from '../types/update';
+import { ReleaseAsset, AppUpdateInfo, InstallUpdateResult } from '../types/update';
 
 const githubOwner = 'smileQiny';
 const githubRepo = 'taskmanager';
 const githubApiUrl = `https://api.github.com/repos/${githubOwner}/${githubRepo}/releases/latest`;
 const githubLatestReleaseUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest`;
-const hasTauri = typeof window !== 'undefined' && Boolean((window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
 
 interface GitHubReleaseAsset {
   name: string;
@@ -75,7 +74,7 @@ export async function checkForUpdates(options: CheckForUpdatesOptions = {}): Pro
 }
 
 export async function openExternalUrl(url: string): Promise<void> {
-  if (hasTauri) {
+  if (hasTauriRuntime()) {
     try {
       const { open } = await import('@tauri-apps/plugin-shell');
       await open(url);
@@ -85,7 +84,48 @@ export async function openExternalUrl(url: string): Promise<void> {
     }
   }
 
-  window.open(url, '_blank', 'noopener,noreferrer');
+  const opener = typeof window !== 'undefined'
+    ? window.open.bind(window)
+    : (globalThis as typeof globalThis & { open?: Window['open'] }).open;
+
+  if (!opener) {
+    throw new Error('当前环境无法打开外部链接。');
+  }
+
+  opener(url, '_blank', 'noopener,noreferrer');
+}
+
+export async function installUpdateFromRelease(release: AppUpdateInfo | null): Promise<InstallUpdateResult> {
+  if (!release) {
+    throw new Error('请先检查更新。');
+  }
+
+  if (hasTauriRuntime()) {
+    const { check } = await import('@tauri-apps/plugin-updater');
+    const { relaunch } = await import('@tauri-apps/plugin-process');
+    const update = await check();
+
+    if (!update) {
+      return {
+        action: 'up_to_date',
+        message: '当前已经是最新版本。',
+      };
+    }
+
+    await update.downloadAndInstall();
+    await relaunch();
+
+    return {
+      action: 'installed',
+      message: '更新已安装，应用正在重启。',
+    };
+  }
+
+  await openExternalUrl(release.releaseUrl);
+  return {
+    action: 'opened',
+    message: '已打开 GitHub Release 页面。',
+  };
 }
 
 export function getPreferredInstallAsset(assets: ReleaseAsset[]): ReleaseAsset | null {
@@ -147,6 +187,11 @@ function detectPlatform(): 'mac' | 'windows' | 'linux' | 'unknown' {
   if (platform.includes('win')) return 'windows';
   if (platform.includes('linux')) return 'linux';
   return 'unknown';
+}
+
+function hasTauriRuntime(): boolean {
+  return typeof window !== 'undefined'
+    && Boolean((window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
 }
 
 function isInstallerAsset(asset: ReleaseAsset): boolean {

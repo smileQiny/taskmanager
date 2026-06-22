@@ -10,7 +10,7 @@ Local-first desktop task manager built with Tauri 2, React 19, TypeScript, Rust,
 - Calendar workspace with month/week/day views, click-to-create slots, and task editing.
 - Pomodoro workspace with local timer and completed session records.
 - Settings workspace with theme, default calendar view, local data path, and sync provider configuration.
-- Startup and manual update checks against the latest GitHub Release installer.
+- Startup and manual signed updates from the latest GitHub Release.
 - Remote sync provider boundary for Feishu, macOS Calendar, WeCom, and Google Calendar. Live provider sync still requires platform-specific authorization credentials.
 
 ## Development
@@ -82,19 +82,39 @@ $env:TASKMANAGER_DOWNLOAD_DIR = "$env:USERPROFILE\Downloads"; irm https://raw.gi
 
 The macOS/Linux script installs the matching DMG or Linux package for the current machine. On Linux it prefers AppImage, then deb, then rpm. The Windows script downloads and runs the NSIS `.exe` installer.
 
-## GitHub Installer Updates
+## Signed App Updates
 
-The app does not use Tauri's signed updater yet. It checks `smileQiny/taskmanager` on GitHub for the latest published Release, compares the release tag with the local app version, and opens the matching installer or Release page for the user to install.
+The app uses Tauri's signed updater for in-app updates. GitHub Releases remain the distribution channel: first-time installs use the scripts above, and running apps check `latest.json` from the latest Release.
+
+Required GitHub Actions secret:
+
+```text
+TAURI_SIGNING_PRIVATE_KEY
+```
+
+Set this secret to the contents of your private key file, for example:
+
+```bash
+cat ~/.tauri/taskmanager-updater.key
+```
+
+If the key was generated with a password, also set:
+
+```text
+TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+```
+
+The public key is committed in `src-tauri/tauri.conf.json`. Do not commit the private key.
 
 Release flow:
 
 ```bash
 npm run version:set -- <next-version>
 npm run version:check
-git add package.json package-lock.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
+git add package.json package-lock.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json
 git commit -m "Release v<next-version>"
 git tag v<next-version>
 git push origin main v<next-version>
 ```
 
-Pushing a `v*` tag runs `.github/workflows/build.yml`, builds macOS, Windows, and Linux installers with `tauri-apps/tauri-action`, and publishes them to the GitHub Release. The app's update check only sees published releases, so keep the tag version aligned with `package.json`.
+Pushing a `v*` tag runs `.github/workflows/build.yml`, builds macOS, Windows, and Linux installers with `tauri-apps/tauri-action`, signs updater artifacts, uploads `latest.json`, and publishes everything to the GitHub Release. The app's update check only sees published releases, so keep the tag version aligned with `package.json`.

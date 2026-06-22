@@ -3,13 +3,26 @@ import {
   checkForUpdates,
   compareVersions,
   getPreferredInstallAsset,
+  installUpdateFromRelease,
   normalizeVersion,
 } from './updateService';
-import { ReleaseAsset } from '../types/update';
+import { AppUpdateInfo, ReleaseAsset } from '../types/update';
+
+vi.mock('@tauri-apps/plugin-updater', () => ({
+  check: vi.fn(),
+}));
+
+vi.mock('@tauri-apps/plugin-process', () => ({
+  relaunch: vi.fn(),
+}));
 
 describe('update service', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    if (typeof window !== 'undefined') {
+      delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
+    }
   });
 
   it('compares semantic versions numerically', () => {
@@ -73,4 +86,63 @@ describe('update service', () => {
 
     expect(getPreferredInstallAsset(assets)?.name).toBe('TaskManager_0.2.0_aarch64.dmg');
   });
+
+  it('uses Tauri signed updater inside Tauri', async () => {
+    const { check } = await import('@tauri-apps/plugin-updater');
+    const { relaunch } = await import('@tauri-apps/plugin-process');
+    const downloadAndInstall = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(check).mockResolvedValue({
+      downloadAndInstall,
+    } as unknown as Awaited<ReturnType<typeof check>>);
+    vi.stubGlobal('window', { __TAURI_INTERNALS__: {} });
+
+    const release = makeRelease();
+    const result = await installUpdateFromRelease(release);
+
+    expect(check).toHaveBeenCalled();
+    expect(downloadAndInstall).toHaveBeenCalled();
+    expect(relaunch).toHaveBeenCalled();
+    expect(result.action).toBe('installed');
+  });
+
+  it('opens the release page in browser previews', async () => {
+    const { check } = await import('@tauri-apps/plugin-updater');
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    vi.stubGlobal('window', undefined);
+
+    const result = await installUpdateFromRelease(makeRelease());
+
+    expect(check).not.toHaveBeenCalled();
+    expect(open).toHaveBeenCalledWith(
+      'https://github.com/smileQiny/taskmanager/releases/tag/v0.2.2',
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(result.action).toBe('opened');
+  });
 });
+
+function makeRelease(): AppUpdateInfo {
+  return {
+    currentVersion: '0.2.1',
+    latestVersion: '0.2.2',
+    releaseName: 'TaskManager v0.2.2',
+    releaseUrl: 'https://github.com/smileQiny/taskmanager/releases/tag/v0.2.2',
+    publishedAt: '2026-06-22T05:47:00Z',
+    assets: [
+      {
+        name: 'Task.Manager_0.2.2_aarch64.dmg',
+        downloadUrl: 'https://github.com/smileQiny/taskmanager/releases/download/v0.2.2/Task.Manager_0.2.2_aarch64.dmg',
+        size: 1,
+      },
+    ],
+    preferredAsset: {
+      name: 'Task.Manager_0.2.2_aarch64.dmg',
+      downloadUrl: 'https://github.com/smileQiny/taskmanager/releases/download/v0.2.2/Task.Manager_0.2.2_aarch64.dmg',
+      size: 1,
+    },
+    isUpdateAvailable: true,
+    checkedAt: '2026-06-22T05:48:00Z',
+  };
+}
