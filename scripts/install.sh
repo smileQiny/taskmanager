@@ -31,6 +31,10 @@ EOF
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
+    --self-test)
+      SELF_TEST="1"
+      shift
+      ;;
     --version)
       TAG="${2:-}"
       shift 2
@@ -65,6 +69,31 @@ require_cmd() {
     exit 1
   fi
 }
+
+extract_mount_point() {
+  local output="$1"
+  local line
+  while IFS= read -r line; do
+    case "$line" in
+      *"/Volumes/"*)
+        printf '/Volumes/%s\n' "${line#*/Volumes/}"
+        return 0
+        ;;
+    esac
+  done <<<"$output"
+  return 1
+}
+
+if [ "${SELF_TEST:-0}" = "1" ]; then
+  SAMPLE_OUTPUT=$'/dev/disk4           GUID_partition_scheme\n/dev/disk4s1         Apple_HFS                       /Volumes/Task Manager'
+  SAMPLE_RESULT="$(extract_mount_point "$SAMPLE_OUTPUT")"
+  if [ "$SAMPLE_RESULT" != "/Volumes/Task Manager" ]; then
+    echo "Mount point parser self-test failed: ${SAMPLE_RESULT}" >&2
+    exit 1
+  fi
+  echo "Mount point parser self-test passed"
+  exit 0
+fi
 
 require_cmd curl
 
@@ -211,7 +240,7 @@ install_macos_dmg() {
   require_cmd hdiutil
   echo "Mounting ${INSTALLER_PATH}"
   MOUNT_OUTPUT="$(hdiutil attach "$INSTALLER_PATH" -nobrowse)"
-  MOUNT_POINT="$(printf '%s\n' "$MOUNT_OUTPUT" | awk '/\\/Volumes\\// {print substr($0, index($0, "/Volumes/")); exit}')"
+  MOUNT_POINT="$(extract_mount_point "$MOUNT_OUTPUT" || true)"
   if [ -z "$MOUNT_POINT" ]; then
     echo "Could not find mounted volume for ${INSTALLER_PATH}" >&2
     exit 1
