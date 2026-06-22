@@ -3,8 +3,8 @@ import { useTaskStore } from '../../stores/taskStore';
 import { formatTaskTime, getTaskTags } from '../../utils/taskUtils';
 
 const priorityColors = {
-  low: 'bg-sky-400',
-  medium: 'bg-amber-400',
+  low: 'bg-slate-300',
+  medium: 'bg-blue-400',
   high: 'bg-rose-500',
 };
 
@@ -23,7 +23,7 @@ export function TaskCard({ task, selected = false }: TaskCardProps) {
 
   return (
     <div
-      className={`group flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50 ${selected ? 'bg-teal-50/80' : 'bg-white'}`}
+      className={`group flex cursor-pointer items-center gap-3 border-b border-slate-100 px-4 py-3 transition hover:bg-slate-50/80 ${selected ? 'bg-blue-50/80' : 'bg-white/82'}`}
       onClick={() => selectTask(task)}
     >
       <span className={`h-10 w-1 rounded-full ${priorityColors[task.priority]}`} />
@@ -37,7 +37,7 @@ export function TaskCard({ task, selected = false }: TaskCardProps) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className={`truncate font-medium text-slate-950 ${task.status === 'done' ? 'line-through opacity-45' : ''}`}>
+          <p className={`truncate font-medium text-slate-900 ${task.status === 'done' ? 'line-through opacity-45' : ''}`}>
             {task.title}
           </p>
           {task.status === 'in_progress' && <span className="badge badge-primary badge-sm">进行中</span>}
@@ -45,7 +45,7 @@ export function TaskCard({ task, selected = false }: TaskCardProps) {
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <span>{formatTaskTime(task)}</span>
           {getTaskTags(task.tags).map((tag) => (
-            <span key={tag} className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-500">{tag}</span>
+            <span key={tag} className="rounded bg-slate-100/80 px-1.5 py-0.5 text-slate-500">{tag}</span>
           ))}
         </div>
       </div>

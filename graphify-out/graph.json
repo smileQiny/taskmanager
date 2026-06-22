@@ -15,7 +15,7 @@
       "label": "install",
       "source_file": "./scripts/install.ps1",
       "node_type": "file",
-      "community": 54
+      "community": 52
     },
     {
       "id": "src_tauri_build_rs",
@@ -37,7 +37,7 @@
       "label": "lib",
       "source_file": "./src-tauri/src/lib.rs",
       "node_type": "file",
-      "community": 22
+      "community": 23
     },
     {
       "id": "src_tauri_src_lib_rs_import_rusqlite_connection",
@@ -45,7 +45,7 @@
       "source_file": "./src-tauri/src/lib.rs",
       "source_location": "L5",
       "node_type": "module",
-      "community": 22
+      "community": 23
     },
     {
       "id": "src_tauri_src_lib_rs_import_std_path_pathbuf",
@@ -53,7 +53,7 @@
       "source_file": "./src-tauri/src/lib.rs",
       "source_location": "L6",
       "node_type": "module",
-      "community": 22
+      "community": 23
     },
     {
       "id": "src_tauri_src_lib_rs_import_std_sync_mutex",
@@ -61,7 +61,7 @@
       "source_file": "./src-tauri/src/lib.rs",
       "source_location": "L7",
       "node_type": "module",
-      "community": 22
+      "community": 23
     },
     {
       "id": "src_tauri_src_lib_rs_import_tauri_manager",
@@ -69,7 +69,7 @@
       "source_file": "./src-tauri/src/lib.rs",
       "source_location": "L8",
       "node_type": "module",
-      "community": 22
+      "community": 23
     },
     {
       "id": "src_tauri_src_lib_rs_appstate",
@@ -77,7 +77,7 @@
       "source_file": "./src-tauri/src/lib.rs",
       "source_location": "L10",
       "node_type": "struct",
-      "community": 22
+      "community": 23
     },
     {
       "id": "src_tauri_src_lib_rs_run",
@@ -85,14 +85,14 @@
       "source_file": "./src-tauri/src/lib.rs",
       "source_location": "L17",
       "node_type": "function",
-      "community": 22
+      "community": 23
     },
     {
       "id": "src_tauri_src_models_sync_rs",
       "label": "sync",
       "source_file": "./src-tauri/src/models/sync.rs",
       "node_type": "file",
-      "community": 23
+      "community": 24
     },
     {
       "id": "src_tauri_src_models_sync_rs_import_serde_deserialize_serialize",
@@ -100,7 +100,7 @@
       "source_file": "./src-tauri/src/models/sync.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 23
+      "community": 24
     },
     {
       "id": "src_tauri_src_models_sync_rs_syncaccount",
@@ -108,7 +108,7 @@
       "source_file": "./src-tauri/src/models/sync.rs",
       "source_location": "L4",
       "node_type": "struct",
-      "community": 23
+      "community": 24
     },
     {
       "id": "src_tauri_src_models_sync_rs_upsertsyncaccountinput",
@@ -116,7 +116,7 @@
       "source_file": "./src-tauri/src/models/sync.rs",
       "source_location": "L14",
       "node_type": "struct",
-      "community": 23
+      "community": 24
     },
     {
       "id": "src_tauri_src_models_sync_rs_syncrunresult",
@@ -124,7 +124,7 @@
       "source_file": "./src-tauri/src/models/sync.rs",
       "source_location": "L21",
       "node_type": "struct",
-      "community": 23
+      "community": 24
     },
     {
       "id": "src_tauri_src_models_sync_rs_tasksyncstate",
@@ -132,7 +132,7 @@
       "source_file": "./src-tauri/src/models/sync.rs",
       "source_location": "L29",
       "node_type": "struct",
-      "community": 23
+      "community": 24
     },
     {
       "id": "src_tauri_src_models_sync_rs_settasksyncinput",
@@ -140,14 +140,14 @@
       "source_file": "./src-tauri/src/models/sync.rs",
       "source_location": "L38",
       "node_type": "struct",
-      "community": 23
+      "community": 24
     },
     {
       "id": "src_tauri_src_models_task_rs",
       "label": "task",
       "source_file": "./src-tauri/src/models/task.rs",
       "node_type": "file",
-      "community": 34
+      "community": 35
     },
     {
       "id": "src_tauri_src_models_task_rs_import_serde_deserialize_serialize",
@@ -155,7 +155,7 @@
       "source_file": "./src-tauri/src/models/task.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 34
+      "community": 35
     },
     {
       "id": "src_tauri_src_models_task_rs_task",
@@ -163,7 +163,7 @@
       "source_file": "./src-tauri/src/models/task.rs",
       "source_location": "L4",
       "node_type": "struct",
-      "community": 34
+      "community": 35
     },
     {
       "id": "src_tauri_src_models_task_rs_createtaskinput",
@@ -171,7 +171,7 @@
       "source_file": "./src-tauri/src/models/task.rs",
       "source_location": "L20",
       "node_type": "struct",
-      "community": 34
+      "community": 35
     },
     {
       "id": "src_tauri_src_models_task_rs_updatetaskinput",
@@ -179,21 +179,21 @@
       "source_file": "./src-tauri/src/models/task.rs",
       "source_location": "L33",
       "node_type": "struct",
-      "community": 34
+      "community": 35
     },
     {
       "id": "src_tauri_src_models_mod_rs",
       "label": "mod",
       "source_file": "./src-tauri/src/models/mod.rs",
       "node_type": "file",
-      "community": 52
+      "community": 54
     },
     {
       "id": "src_tauri_src_models_settings_rs",
       "label": "settings",
       "source_file": "./src-tauri/src/models/settings.rs",
       "node_type": "file",
-      "community": 33
+      "community": 32
     },
     {
       "id": "src_tauri_src_models_settings_rs_import_serde_deserialize_serialize",
@@ -201,7 +201,7 @@
       "source_file": "./src-tauri/src/models/settings.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 33
+      "community": 32
     },
     {
       "id": "src_tauri_src_models_settings_rs_appsettings",
@@ -209,7 +209,7 @@
       "source_file": "./src-tauri/src/models/settings.rs",
       "source_location": "L4",
       "node_type": "struct",
-      "community": 33
+      "community": 32
     },
     {
       "id": "src_tauri_src_models_settings_rs_updatesettingsinput",
@@ -217,7 +217,7 @@
       "source_file": "./src-tauri/src/models/settings.rs",
       "source_location": "L11",
       "node_type": "struct",
-      "community": 33
+      "community": 32
     },
     {
       "id": "src_tauri_src_models_settings_rs_appmetadata",
@@ -225,7 +225,7 @@
       "source_file": "./src-tauri/src/models/settings.rs",
       "source_location": "L18",
       "node_type": "struct",
-      "community": 33
+      "community": 32
     },
     {
       "id": "src_tauri_src_models_pomodoro_rs",
@@ -263,7 +263,7 @@
       "label": "main",
       "source_file": "./src-tauri/src/main.rs",
       "node_type": "file",
-      "community": 43
+      "community": 44
     },
     {
       "id": "src_tauri_src_main_rs_main",
@@ -271,14 +271,14 @@
       "source_file": "./src-tauri/src/main.rs",
       "source_location": "L4",
       "node_type": "function",
-      "community": 43
+      "community": 44
     },
     {
       "id": "src_tauri_src_commands_sync_rs",
       "label": "sync",
       "source_file": "./src-tauri/src/commands/sync.rs",
       "node_type": "file",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_import_tauri_state",
@@ -286,7 +286,7 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_import_crate_models_sync_settasksyncinput_syncaccount_syncrunresult_tasksyncstate_upsertsyncaccountinput",
@@ -294,7 +294,7 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L3",
       "node_type": "module",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_import_crate_modules_sync_as_sync_module",
@@ -302,7 +302,7 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L6",
       "node_type": "module",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_import_crate_appstate",
@@ -310,7 +310,7 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L7",
       "node_type": "module",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_list_sync_accounts",
@@ -318,7 +318,7 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L10",
       "node_type": "function",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_upsert_sync_account",
@@ -326,7 +326,7 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L16",
       "node_type": "function",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_sync_provider_now",
@@ -334,7 +334,7 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L25",
       "node_type": "function",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_list_task_sync_states",
@@ -342,7 +342,7 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L34",
       "node_type": "function",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_sync_rs_set_task_sync",
@@ -350,14 +350,14 @@
       "source_file": "./src-tauri/src/commands/sync.rs",
       "source_location": "L43",
       "node_type": "function",
-      "community": 17
+      "community": 16
     },
     {
       "id": "src_tauri_src_commands_task_rs",
       "label": "task",
       "source_file": "./src-tauri/src/commands/task.rs",
       "node_type": "file",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_import_tauri_state",
@@ -365,7 +365,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_import_crate_models_task_createtaskinput_task_updatetaskinput",
@@ -373,7 +373,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L3",
       "node_type": "module",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_import_crate_modules_task_as_task_module",
@@ -381,7 +381,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L4",
       "node_type": "module",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_import_crate_appstate",
@@ -389,7 +389,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L5",
       "node_type": "module",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_get_tasks",
@@ -397,7 +397,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L8",
       "node_type": "function",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_get_task",
@@ -405,7 +405,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L14",
       "node_type": "function",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_create_task",
@@ -413,7 +413,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L20",
       "node_type": "function",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_update_task",
@@ -421,7 +421,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L26",
       "node_type": "function",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_delete_task",
@@ -429,7 +429,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L32",
       "node_type": "function",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_task_rs_get_tasks_by_range",
@@ -437,7 +437,7 @@
       "source_file": "./src-tauri/src/commands/task.rs",
       "source_location": "L38",
       "node_type": "function",
-      "community": 12
+      "community": 11
     },
     {
       "id": "src_tauri_src_commands_mod_rs",
@@ -451,7 +451,7 @@
       "label": "app",
       "source_file": "./src-tauri/src/commands/app.rs",
       "node_type": "file",
-      "community": 32
+      "community": 33
     },
     {
       "id": "src_tauri_src_commands_app_rs_import_tauri_state",
@@ -459,7 +459,7 @@
       "source_file": "./src-tauri/src/commands/app.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 32
+      "community": 33
     },
     {
       "id": "src_tauri_src_commands_app_rs_import_crate_models_settings_appmetadata",
@@ -467,7 +467,7 @@
       "source_file": "./src-tauri/src/commands/app.rs",
       "source_location": "L3",
       "node_type": "module",
-      "community": 32
+      "community": 33
     },
     {
       "id": "src_tauri_src_commands_app_rs_import_crate_appstate",
@@ -475,7 +475,7 @@
       "source_file": "./src-tauri/src/commands/app.rs",
       "source_location": "L4",
       "node_type": "module",
-      "community": 32
+      "community": 33
     },
     {
       "id": "src_tauri_src_commands_app_rs_get_app_metadata",
@@ -483,14 +483,14 @@
       "source_file": "./src-tauri/src/commands/app.rs",
       "source_location": "L7",
       "node_type": "function",
-      "community": 32
+      "community": 33
     },
     {
       "id": "src_tauri_src_commands_settings_rs",
       "label": "settings",
       "source_file": "./src-tauri/src/commands/settings.rs",
       "node_type": "file",
-      "community": 26
+      "community": 22
     },
     {
       "id": "src_tauri_src_commands_settings_rs_import_tauri_state",
@@ -498,7 +498,7 @@
       "source_file": "./src-tauri/src/commands/settings.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 26
+      "community": 22
     },
     {
       "id": "src_tauri_src_commands_settings_rs_import_crate_models_settings_appsettings_updatesettingsinput",
@@ -506,7 +506,7 @@
       "source_file": "./src-tauri/src/commands/settings.rs",
       "source_location": "L3",
       "node_type": "module",
-      "community": 26
+      "community": 22
     },
     {
       "id": "src_tauri_src_commands_settings_rs_import_crate_modules_settings_as_settings_module",
@@ -514,7 +514,7 @@
       "source_file": "./src-tauri/src/commands/settings.rs",
       "source_location": "L4",
       "node_type": "module",
-      "community": 26
+      "community": 22
     },
     {
       "id": "src_tauri_src_commands_settings_rs_import_crate_appstate",
@@ -522,7 +522,7 @@
       "source_file": "./src-tauri/src/commands/settings.rs",
       "source_location": "L5",
       "node_type": "module",
-      "community": 26
+      "community": 22
     },
     {
       "id": "src_tauri_src_commands_settings_rs_get_settings",
@@ -530,7 +530,7 @@
       "source_file": "./src-tauri/src/commands/settings.rs",
       "source_location": "L8",
       "node_type": "function",
-      "community": 26
+      "community": 22
     },
     {
       "id": "src_tauri_src_commands_settings_rs_update_settings",
@@ -538,14 +538,14 @@
       "source_file": "./src-tauri/src/commands/settings.rs",
       "source_location": "L14",
       "node_type": "function",
-      "community": 26
+      "community": 22
     },
     {
       "id": "src_tauri_src_commands_pomodoro_rs",
       "label": "pomodoro",
       "source_file": "./src-tauri/src/commands/pomodoro.rs",
       "node_type": "file",
-      "community": 25
+      "community": 26
     },
     {
       "id": "src_tauri_src_commands_pomodoro_rs_import_tauri_state",
@@ -553,7 +553,7 @@
       "source_file": "./src-tauri/src/commands/pomodoro.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 25
+      "community": 26
     },
     {
       "id": "src_tauri_src_commands_pomodoro_rs_import_crate_models_pomodoro_createpomodorosessioninput_pomodorosession",
@@ -561,7 +561,7 @@
       "source_file": "./src-tauri/src/commands/pomodoro.rs",
       "source_location": "L3",
       "node_type": "module",
-      "community": 25
+      "community": 26
     },
     {
       "id": "src_tauri_src_commands_pomodoro_rs_import_crate_modules_pomodoro_as_pomodoro_module",
@@ -569,7 +569,7 @@
       "source_file": "./src-tauri/src/commands/pomodoro.rs",
       "source_location": "L4",
       "node_type": "module",
-      "community": 25
+      "community": 26
     },
     {
       "id": "src_tauri_src_commands_pomodoro_rs_import_crate_appstate",
@@ -577,7 +577,7 @@
       "source_file": "./src-tauri/src/commands/pomodoro.rs",
       "source_location": "L5",
       "node_type": "module",
-      "community": 25
+      "community": 26
     },
     {
       "id": "src_tauri_src_commands_pomodoro_rs_create_pomodoro_session",
@@ -585,7 +585,7 @@
       "source_file": "./src-tauri/src/commands/pomodoro.rs",
       "source_location": "L8",
       "node_type": "function",
-      "community": 25
+      "community": 26
     },
     {
       "id": "src_tauri_src_commands_pomodoro_rs_list_pomodoro_sessions",
@@ -593,7 +593,7 @@
       "source_file": "./src-tauri/src/commands/pomodoro.rs",
       "source_location": "L17",
       "node_type": "function",
-      "community": 25
+      "community": 26
     },
     {
       "id": "src_tauri_src_modules_sync_rs",
@@ -942,7 +942,7 @@
       "label": "db",
       "source_file": "./src-tauri/src/modules/db.rs",
       "node_type": "file",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_import_anyhow_result",
@@ -950,7 +950,7 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_import_rusqlite_connection",
@@ -958,7 +958,7 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L2",
       "node_type": "module",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_import_std_path_path",
@@ -966,7 +966,7 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L3",
       "node_type": "module",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_init",
@@ -974,7 +974,7 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L5",
       "node_type": "function",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_init_in_memory",
@@ -982,7 +982,7 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L13",
       "node_type": "function",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_migrate",
@@ -990,7 +990,7 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L19",
       "node_type": "function",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_add_column_if_missing",
@@ -998,7 +998,7 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L70",
       "node_type": "function",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_import_super",
@@ -1006,7 +1006,7 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L84",
       "node_type": "module",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_db_rs_migration_adds_sync_account_columns_to_existing_database",
@@ -1014,21 +1014,21 @@
       "source_file": "./src-tauri/src/modules/db.rs",
       "source_location": "L87",
       "node_type": "function",
-      "community": 16
+      "community": 14
     },
     {
       "id": "src_tauri_src_modules_mod_rs",
       "label": "mod",
       "source_file": "./src-tauri/src/modules/mod.rs",
       "node_type": "file",
-      "community": 51
+      "community": 47
     },
     {
       "id": "src_tauri_src_modules_settings_rs",
       "label": "settings",
       "source_file": "./src-tauri/src/modules/settings.rs",
       "node_type": "file",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_import_anyhow_bail_result",
@@ -1036,7 +1036,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_import_rusqlite_params_connection",
@@ -1044,7 +1044,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L2",
       "node_type": "module",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_import_crate_models_settings_appsettings_updatesettingsinput",
@@ -1052,7 +1052,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L4",
       "node_type": "module",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_get",
@@ -1060,7 +1060,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L10",
       "node_type": "function",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_update",
@@ -1068,7 +1068,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L21",
       "node_type": "function",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_get_value",
@@ -1076,7 +1076,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L39",
       "node_type": "function",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_set_value",
@@ -1084,7 +1084,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L45",
       "node_type": "function",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_validate_theme",
@@ -1092,7 +1092,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L54",
       "node_type": "function",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_validate_calendar_view",
@@ -1100,7 +1100,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L61",
       "node_type": "function",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_import_super",
@@ -1108,7 +1108,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L70",
       "node_type": "module",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_import_crate_modules_db",
@@ -1116,7 +1116,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L71",
       "node_type": "module",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_settings_have_defaults_and_can_update",
@@ -1124,7 +1124,7 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L74",
       "node_type": "function",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_settings_rs_settings_reject_invalid_duration",
@@ -1132,14 +1132,14 @@
       "source_file": "./src-tauri/src/modules/settings.rs",
       "source_location": "L102",
       "node_type": "function",
-      "community": 4
+      "community": 6
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs",
       "label": "pomodoro",
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "node_type": "file",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_import_anyhow_bail_result",
@@ -1147,7 +1147,7 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L1",
       "node_type": "module",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_import_rusqlite_params_connection",
@@ -1155,7 +1155,7 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L2",
       "node_type": "module",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_import_uuid_uuid",
@@ -1163,7 +1163,7 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L3",
       "node_type": "module",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_import_crate_models_pomodoro_createpomodorosessioninput_pomodorosession",
@@ -1171,7 +1171,7 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L5",
       "node_type": "module",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_create",
@@ -1179,7 +1179,7 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L7",
       "node_type": "function",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_list_recent",
@@ -1187,7 +1187,7 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L32",
       "node_type": "function",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_import_super",
@@ -1195,7 +1195,7 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L55",
       "node_type": "module",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_import_crate_modules_db",
@@ -1203,7 +1203,7 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L56",
       "node_type": "module",
-      "community": 14
+      "community": 15
     },
     {
       "id": "src_tauri_src_modules_pomodoro_rs_creates_and_lists_recent_sessions",
@@ -1211,14 +1211,14 @@
       "source_file": "./src-tauri/src/modules/pomodoro.rs",
       "source_location": "L59",
       "node_type": "function",
-      "community": 14
+      "community": 15
     },
     {
       "id": "vite_config_ts",
       "label": "vite.config",
       "source_file": "./vite.config.ts",
       "node_type": "file",
-      "community": 37
+      "community": 42
     },
     {
       "id": "vite_config_ts_import_vite_defineconfig",
@@ -1226,7 +1226,7 @@
       "source_file": "./vite.config.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 37
+      "community": 42
     },
     {
       "id": "vite_config_ts_import_vitejs_plugin_react_react",
@@ -1234,7 +1234,7 @@
       "source_file": "./vite.config.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 37
+      "community": 42
     },
     {
       "id": "vite_config_ts_import_node_fs_readfilesync",
@@ -1242,21 +1242,21 @@
       "source_file": "./vite.config.ts",
       "source_location": "L3",
       "node_type": "module",
-      "community": 37
+      "community": 42
     },
     {
       "id": "postcss_config_js",
       "label": "postcss.config",
       "source_file": "./postcss.config.js",
       "node_type": "file",
-      "community": 50
+      "community": 55
     },
     {
       "id": "src_app_tsx",
       "label": "App",
       "source_file": "./src/App.tsx",
       "node_type": "file",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_react_useeffect",
@@ -1264,7 +1264,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_react_router_dom_browserrouter",
@@ -1272,7 +1272,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_react_router_dom_routes",
@@ -1280,7 +1280,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_react_router_dom_route",
@@ -1288,7 +1288,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_components_layout_sidebar_sidebar",
@@ -1296,7 +1296,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_pages_todaypage_todaypage",
@@ -1304,7 +1304,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_pages_calendarpage_calendarpage",
@@ -1312,7 +1312,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L5",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_pages_taskspage_taskspage",
@@ -1320,7 +1320,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L6",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_pages_settingspage_settingspage",
@@ -1328,7 +1328,7 @@
       "source_file": "./src/App.tsx",
       "source_location": "L7",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_pages_pomodoropage_pomodoropage",
@@ -1336,30 +1336,38 @@
       "source_file": "./src/App.tsx",
       "source_location": "L8",
       "node_type": "module",
-      "community": 6
+      "community": 5
+    },
+    {
+      "id": "src_app_tsx_import_pages_cockpitpage_cockpitpage",
+      "label": "./pages/CockpitPage/CockpitPage",
+      "source_file": "./src/App.tsx",
+      "source_location": "L9",
+      "node_type": "module",
+      "community": 5
     },
     {
       "id": "src_app_tsx_import_stores_updatestore_useupdatestore",
       "label": "./stores/updateStore/useUpdateStore",
       "source_file": "./src/App.tsx",
-      "source_location": "L9",
+      "source_location": "L10",
       "node_type": "module",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_app_tsx_app",
       "label": "App()",
       "source_file": "./src/App.tsx",
-      "source_location": "L11",
+      "source_location": "L12",
       "node_type": "function",
-      "community": 6
+      "community": 5
     },
     {
       "id": "src_main_tsx",
       "label": "main",
       "source_file": "./src/main.tsx",
       "node_type": "file",
-      "community": 31
+      "community": 34
     },
     {
       "id": "src_main_tsx_import_react_react",
@@ -1367,7 +1375,7 @@
       "source_file": "./src/main.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 31
+      "community": 34
     },
     {
       "id": "src_main_tsx_import_react_dom_client_reactdom",
@@ -1375,7 +1383,7 @@
       "source_file": "./src/main.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 31
+      "community": 34
     },
     {
       "id": "src_main_tsx_import_app_app",
@@ -1383,7 +1391,7 @@
       "source_file": "./src/main.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 31
+      "community": 34
     },
     {
       "id": "src_main_tsx_import_index_css",
@@ -1391,28 +1399,28 @@
       "source_file": "./src/main.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 31
+      "community": 34
     },
     {
       "id": "src_types_task_ts",
       "label": "task",
       "source_file": "./src/types/task.ts",
       "node_type": "file",
-      "community": 46
+      "community": 53
     },
     {
       "id": "src_types_update_ts",
       "label": "update",
       "source_file": "./src/types/update.ts",
       "node_type": "file",
-      "community": 47
+      "community": 50
     },
     {
       "id": "src_stores_calendarstore_ts",
       "label": "calendarStore",
       "source_file": "./src/stores/calendarStore.ts",
       "node_type": "file",
-      "community": 42
+      "community": 43
     },
     {
       "id": "src_stores_calendarstore_ts_import_zustand_create",
@@ -1420,7 +1428,7 @@
       "source_file": "./src/stores/calendarStore.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 42
+      "community": 43
     },
     {
       "id": "src_stores_calendarstore_ts_import_dayjs_dayjs",
@@ -1428,14 +1436,14 @@
       "source_file": "./src/stores/calendarStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 42
+      "community": 43
     },
     {
       "id": "src_stores_settingsstore_ts",
       "label": "settingsStore",
       "source_file": "./src/stores/settingsStore.ts",
       "node_type": "file",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_zustand_create",
@@ -1443,7 +1451,7 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_types_task_appmetadata",
@@ -1451,7 +1459,7 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_types_task_appsettings",
@@ -1459,7 +1467,7 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_types_task_syncaccount",
@@ -1467,7 +1475,7 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_types_task_syncprovider",
@@ -1475,7 +1483,7 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_types_task_syncrunresult",
@@ -1483,7 +1491,7 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_services_taskservice_appservice",
@@ -1491,7 +1499,7 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L9",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_services_taskservice_settingsservice",
@@ -1499,7 +1507,7 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L9",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_settingsstore_ts_import_services_taskservice_syncservice",
@@ -1507,14 +1515,14 @@
       "source_file": "./src/stores/settingsStore.ts",
       "source_location": "L9",
       "node_type": "module",
-      "community": 15
+      "community": 17
     },
     {
       "id": "src_stores_taskstore_ts",
       "label": "taskStore",
       "source_file": "./src/stores/taskStore.ts",
       "node_type": "file",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_zustand_create",
@@ -1522,7 +1530,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_types_task_createtaskinput",
@@ -1530,7 +1538,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_types_task_task",
@@ -1538,7 +1546,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_types_task_taskfilters",
@@ -1546,7 +1554,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_types_task_taskpriorityfilter",
@@ -1554,7 +1562,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_types_task_tasksortkey",
@@ -1562,7 +1570,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_types_task_taskstatusfilter",
@@ -1570,7 +1578,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_types_task_updatetaskinput",
@@ -1578,7 +1586,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_services_taskservice_taskservice",
@@ -1586,7 +1594,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L11",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_utils_taskutils_filtertasks",
@@ -1594,7 +1602,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L12",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_taskstore_ts_import_utils_taskutils_sorttasks",
@@ -1602,7 +1610,7 @@
       "source_file": "./src/stores/taskStore.ts",
       "source_location": "L12",
       "node_type": "module",
-      "community": 8
+      "community": 9
     },
     {
       "id": "src_stores_pomodorostore_ts",
@@ -1640,7 +1648,7 @@
       "label": "updateStore",
       "source_file": "./src/stores/updateStore.ts",
       "node_type": "file",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_stores_updatestore_ts_import_zustand_create",
@@ -1648,7 +1656,7 @@
       "source_file": "./src/stores/updateStore.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_stores_updatestore_ts_import_services_updateservice_appversion",
@@ -1656,7 +1664,7 @@
       "source_file": "./src/stores/updateStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_stores_updatestore_ts_import_services_updateservice_checkforupdates",
@@ -1664,7 +1672,7 @@
       "source_file": "./src/stores/updateStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_stores_updatestore_ts_import_services_updateservice_openexternalurl",
@@ -1672,7 +1680,7 @@
       "source_file": "./src/stores/updateStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_stores_updatestore_ts_import_services_updateservice_releasesurl",
@@ -1680,7 +1688,7 @@
       "source_file": "./src/stores/updateStore.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_stores_updatestore_ts_import_types_update_appupdateinfo",
@@ -1688,7 +1696,7 @@
       "source_file": "./src/stores/updateStore.ts",
       "source_location": "L8",
       "node_type": "module",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_stores_updatestore_ts_import_types_update_updatechecksource",
@@ -1696,7 +1704,7 @@
       "source_file": "./src/stores/updateStore.ts",
       "source_location": "L8",
       "node_type": "module",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_stores_updatestore_ts_import_types_update_updatestatus",
@@ -1704,7 +1712,7 @@
       "source_file": "./src/stores/updateStore.ts",
       "source_location": "L8",
       "node_type": "module",
-      "community": 18
+      "community": 19
     },
     {
       "id": "src_utils_taskutils_ts",
@@ -1830,7 +1838,7 @@
       "label": "taskUtils.test",
       "source_file": "./src/utils/taskUtils.test.ts",
       "node_type": "file",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_import_vitest_describe",
@@ -1838,7 +1846,7 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_import_vitest_expect",
@@ -1846,7 +1854,7 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_import_vitest_it",
@@ -1854,7 +1862,7 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_import_types_task_task",
@@ -1862,7 +1870,7 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L2",
       "node_type": "module",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_import_taskutils_filtertasks",
@@ -1870,7 +1878,7 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L3",
       "node_type": "module",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_import_taskutils_gettasktags",
@@ -1878,7 +1886,7 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L3",
       "node_type": "module",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_import_taskutils_grouptasksfortoday",
@@ -1886,7 +1894,7 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L3",
       "node_type": "module",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_import_taskutils_sorttasks",
@@ -1894,7 +1902,7 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L3",
       "node_type": "module",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_utils_taskutils_test_ts_task",
@@ -1902,14 +1910,14 @@
       "source_file": "./src/utils/taskUtils.test.ts",
       "source_location": "L10",
       "node_type": "function",
-      "community": 13
+      "community": 18
     },
     {
       "id": "src_components_tasks_taskcard_tsx",
       "label": "TaskCard",
       "source_file": "./src/components/tasks/TaskCard.tsx",
       "node_type": "file",
-      "community": 28
+      "community": 29
     },
     {
       "id": "src_components_tasks_taskcard_tsx_import_types_task_task",
@@ -1917,7 +1925,7 @@
       "source_file": "./src/components/tasks/TaskCard.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 28
+      "community": 29
     },
     {
       "id": "src_components_tasks_taskcard_tsx_import_stores_taskstore_usetaskstore",
@@ -1925,7 +1933,7 @@
       "source_file": "./src/components/tasks/TaskCard.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 28
+      "community": 29
     },
     {
       "id": "src_components_tasks_taskcard_tsx_import_utils_taskutils_formattasktime",
@@ -1933,7 +1941,7 @@
       "source_file": "./src/components/tasks/TaskCard.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 28
+      "community": 29
     },
     {
       "id": "src_components_tasks_taskcard_tsx_import_utils_taskutils_gettasktags",
@@ -1941,7 +1949,7 @@
       "source_file": "./src/components/tasks/TaskCard.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 28
+      "community": 29
     },
     {
       "id": "src_components_tasks_taskcard_tsx_taskcard",
@@ -1949,14 +1957,14 @@
       "source_file": "./src/components/tasks/TaskCard.tsx",
       "source_location": "L16",
       "node_type": "function",
-      "community": 28
+      "community": 29
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx",
       "label": "TaskDetailPanel",
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "node_type": "file",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_react_formevent",
@@ -1964,7 +1972,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_react_useeffect",
@@ -1972,7 +1980,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_react_usememo",
@@ -1980,7 +1988,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_react_usestate",
@@ -1988,7 +1996,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_dayjs_dayjs",
@@ -1996,7 +2004,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_types_task_createtaskinput",
@@ -2004,7 +2012,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_types_task_syncprovider",
@@ -2012,7 +2020,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_types_task_task",
@@ -2020,7 +2028,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_types_task_tasksyncstate",
@@ -2028,7 +2036,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_stores_taskstore_usetaskstore",
@@ -2036,7 +2044,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_import_services_taskservice_syncservice",
@@ -2044,7 +2052,7 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L5",
       "node_type": "module",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_taskdetailpanel_tsx_handlesubmit",
@@ -2052,14 +2060,14 @@
       "source_file": "./src/components/tasks/TaskDetailPanel.tsx",
       "source_location": "L98",
       "node_type": "function",
-      "community": 5
+      "community": 7
     },
     {
       "id": "src_components_tasks_tasklist_tsx",
       "label": "TaskList",
       "source_file": "./src/components/tasks/TaskList.tsx",
       "node_type": "file",
-      "community": 39
+      "community": 40
     },
     {
       "id": "src_components_tasks_tasklist_tsx_import_types_task_task",
@@ -2067,7 +2075,7 @@
       "source_file": "./src/components/tasks/TaskList.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 39
+      "community": 40
     },
     {
       "id": "src_components_tasks_tasklist_tsx_import_taskcard_taskcard",
@@ -2075,7 +2083,7 @@
       "source_file": "./src/components/tasks/TaskList.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 39
+      "community": 40
     },
     {
       "id": "src_components_tasks_tasklist_tsx_tasklist",
@@ -2083,14 +2091,14 @@
       "source_file": "./src/components/tasks/TaskList.tsx",
       "source_location": "L10",
       "node_type": "function",
-      "community": 39
+      "community": 40
     },
     {
       "id": "src_components_tasks_taskfilters_tsx",
       "label": "TaskFilters",
       "source_file": "./src/components/tasks/TaskFilters.tsx",
       "node_type": "file",
-      "community": 30
+      "community": 31
     },
     {
       "id": "src_components_tasks_taskfilters_tsx_import_types_task_taskpriorityfilter",
@@ -2098,7 +2106,7 @@
       "source_file": "./src/components/tasks/TaskFilters.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 30
+      "community": 31
     },
     {
       "id": "src_components_tasks_taskfilters_tsx_import_types_task_tasksortkey",
@@ -2106,7 +2114,7 @@
       "source_file": "./src/components/tasks/TaskFilters.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 30
+      "community": 31
     },
     {
       "id": "src_components_tasks_taskfilters_tsx_import_types_task_taskstatusfilter",
@@ -2114,7 +2122,7 @@
       "source_file": "./src/components/tasks/TaskFilters.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 30
+      "community": 31
     },
     {
       "id": "src_components_tasks_taskfilters_tsx_import_stores_taskstore_usetaskstore",
@@ -2122,7 +2130,7 @@
       "source_file": "./src/components/tasks/TaskFilters.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 30
+      "community": 31
     },
     {
       "id": "src_components_tasks_taskfilters_tsx_taskfilters",
@@ -2130,14 +2138,14 @@
       "source_file": "./src/components/tasks/TaskFilters.tsx",
       "source_location": "L25",
       "node_type": "function",
-      "community": 30
+      "community": 31
     },
     {
       "id": "src_components_calendar_dayview_tsx",
       "label": "DayView",
       "source_file": "./src/components/calendar/DayView.tsx",
       "node_type": "file",
-      "community": 40
+      "community": 37
     },
     {
       "id": "src_components_calendar_dayview_tsx_import_dayjs_dayjs",
@@ -2145,7 +2153,7 @@
       "source_file": "./src/components/calendar/DayView.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 40
+      "community": 37
     },
     {
       "id": "src_components_calendar_dayview_tsx_import_types_task_task",
@@ -2153,7 +2161,7 @@
       "source_file": "./src/components/calendar/DayView.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 40
+      "community": 37
     },
     {
       "id": "src_components_calendar_dayview_tsx_gettasksforhour",
@@ -2161,14 +2169,14 @@
       "source_file": "./src/components/calendar/DayView.tsx",
       "source_location": "L14",
       "node_type": "function",
-      "community": 40
+      "community": 37
     },
     {
       "id": "src_components_calendar_monthview_tsx",
       "label": "MonthView",
       "source_file": "./src/components/calendar/MonthView.tsx",
       "node_type": "file",
-      "community": 27
+      "community": 30
     },
     {
       "id": "src_components_calendar_monthview_tsx_import_dayjs_dayjs",
@@ -2176,7 +2184,7 @@
       "source_file": "./src/components/calendar/MonthView.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 27
+      "community": 30
     },
     {
       "id": "src_components_calendar_monthview_tsx_import_types_task_task",
@@ -2184,7 +2192,7 @@
       "source_file": "./src/components/calendar/MonthView.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 27
+      "community": 30
     },
     {
       "id": "src_components_calendar_monthview_tsx_gettasksforday",
@@ -2192,7 +2200,7 @@
       "source_file": "./src/components/calendar/MonthView.tsx",
       "source_location": "L26",
       "node_type": "function",
-      "community": 27
+      "community": 30
     },
     {
       "id": "src_components_calendar_monthview_tsx_istoday",
@@ -2200,7 +2208,7 @@
       "source_file": "./src/components/calendar/MonthView.tsx",
       "source_location": "L35",
       "node_type": "function",
-      "community": 27
+      "community": 30
     },
     {
       "id": "src_components_calendar_monthview_tsx_iscurrentmonth",
@@ -2208,14 +2216,14 @@
       "source_file": "./src/components/calendar/MonthView.tsx",
       "source_location": "L36",
       "node_type": "function",
-      "community": 27
+      "community": 30
     },
     {
       "id": "src_components_calendar_calendarview_tsx",
       "label": "CalendarView",
       "source_file": "./src/components/calendar/CalendarView.tsx",
       "node_type": "file",
-      "community": 24
+      "community": 25
     },
     {
       "id": "src_components_calendar_calendarview_tsx_import_dayjs_dayjs",
@@ -2223,7 +2231,7 @@
       "source_file": "./src/components/calendar/CalendarView.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 24
+      "community": 25
     },
     {
       "id": "src_components_calendar_calendarview_tsx_import_types_task_task",
@@ -2231,7 +2239,7 @@
       "source_file": "./src/components/calendar/CalendarView.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 24
+      "community": 25
     },
     {
       "id": "src_components_calendar_calendarview_tsx_import_monthview_monthview",
@@ -2239,7 +2247,7 @@
       "source_file": "./src/components/calendar/CalendarView.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 24
+      "community": 25
     },
     {
       "id": "src_components_calendar_calendarview_tsx_import_weekview_weekview",
@@ -2247,7 +2255,7 @@
       "source_file": "./src/components/calendar/CalendarView.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 24
+      "community": 25
     },
     {
       "id": "src_components_calendar_calendarview_tsx_import_dayview_dayview",
@@ -2255,7 +2263,7 @@
       "source_file": "./src/components/calendar/CalendarView.tsx",
       "source_location": "L5",
       "node_type": "module",
-      "community": 24
+      "community": 25
     },
     {
       "id": "src_components_calendar_calendarview_tsx_calendarview",
@@ -2263,14 +2271,14 @@
       "source_file": "./src/components/calendar/CalendarView.tsx",
       "source_location": "L16",
       "node_type": "function",
-      "community": 24
+      "community": 25
     },
     {
       "id": "src_components_calendar_weekview_tsx",
       "label": "WeekView",
       "source_file": "./src/components/calendar/WeekView.tsx",
       "node_type": "file",
-      "community": 35
+      "community": 41
     },
     {
       "id": "src_components_calendar_weekview_tsx_import_dayjs_dayjs",
@@ -2278,7 +2286,7 @@
       "source_file": "./src/components/calendar/WeekView.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 35
+      "community": 41
     },
     {
       "id": "src_components_calendar_weekview_tsx_import_types_task_task",
@@ -2286,7 +2294,7 @@
       "source_file": "./src/components/calendar/WeekView.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 35
+      "community": 41
     },
     {
       "id": "src_components_calendar_weekview_tsx_gettasksfordayhour",
@@ -2294,14 +2302,14 @@
       "source_file": "./src/components/calendar/WeekView.tsx",
       "source_location": "L18",
       "node_type": "function",
-      "community": 35
+      "community": 41
     },
     {
       "id": "src_components_layout_topbar_tsx",
       "label": "TopBar",
       "source_file": "./src/components/layout/TopBar.tsx",
       "node_type": "file",
-      "community": 44
+      "community": 46
     },
     {
       "id": "src_components_layout_topbar_tsx_topbar",
@@ -2309,14 +2317,14 @@
       "source_file": "./src/components/layout/TopBar.tsx",
       "source_location": "L7",
       "node_type": "function",
-      "community": 44
+      "community": 46
     },
     {
       "id": "src_components_layout_sidebar_tsx",
       "label": "Sidebar",
       "source_file": "./src/components/layout/Sidebar.tsx",
       "node_type": "file",
-      "community": 41
+      "community": 39
     },
     {
       "id": "src_components_layout_sidebar_tsx_import_react_router_dom_navlink",
@@ -2324,29 +2332,148 @@
       "source_file": "./src/components/layout/Sidebar.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 41
+      "community": 39
+    },
+    {
+      "id": "src_components_layout_sidebar_tsx_import_src_tauri_icons_icon_png_appicon",
+      "label": "../../../src-tauri/icons/icon.png/appIcon",
+      "source_file": "./src/components/layout/Sidebar.tsx",
+      "source_location": "L2",
+      "node_type": "module",
+      "community": 39
     },
     {
       "id": "src_components_layout_sidebar_tsx_sidebar",
       "label": "Sidebar()",
       "source_file": "./src/components/layout/Sidebar.tsx",
-      "source_location": "L11",
+      "source_location": "L12",
       "node_type": "function",
-      "community": 41
+      "community": 39
     },
     {
       "id": "src_vite_env_d_ts",
       "label": "vite-env.d",
       "source_file": "./src/vite-env.d.ts",
       "node_type": "file",
-      "community": 53
+      "community": 51
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx",
+      "label": "CockpitPage",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "node_type": "file",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_react_formevent",
+      "label": "react/FormEvent",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L1",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_react_useeffect",
+      "label": "react/useEffect",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L1",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_react_usememo",
+      "label": "react/useMemo",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L1",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_react_usestate",
+      "label": "react/useState",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L1",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_dayjs_dayjs",
+      "label": "dayjs/dayjs",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L2",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_stores_pomodorostore_usepomodorostore",
+      "label": "../stores/pomodoroStore/usePomodoroStore",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L3",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_stores_taskstore_usetaskstore",
+      "label": "../stores/taskStore/useTaskStore",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L4",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_types_task_task",
+      "label": "../types/task/Task",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L5",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_utils_taskutils_formattasktime",
+      "label": "../utils/taskUtils/formatTaskTime",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L6",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_import_utils_taskutils_grouptasksfortoday",
+      "label": "../utils/taskUtils/groupTasksForToday",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L6",
+      "node_type": "module",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_submittask",
+      "label": "submitTask()",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L61",
+      "node_type": "function",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_togglepin",
+      "label": "togglePin()",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L76",
+      "node_type": "function",
+      "community": 4
+    },
+    {
+      "id": "src_pages_cockpitpage_tsx_closewindow",
+      "label": "closeWindow()",
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L87",
+      "node_type": "function",
+      "community": 4
     },
     {
       "id": "src_pages_calendarpage_tsx",
       "label": "CalendarPage",
       "source_file": "./src/pages/CalendarPage.tsx",
       "node_type": "file",
-      "community": 21
+      "community": 27
     },
     {
       "id": "src_pages_calendarpage_tsx_import_react_useeffect",
@@ -2354,7 +2481,7 @@
       "source_file": "./src/pages/CalendarPage.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 21
+      "community": 27
     },
     {
       "id": "src_pages_calendarpage_tsx_import_components_layout_topbar_topbar",
@@ -2362,7 +2489,7 @@
       "source_file": "./src/pages/CalendarPage.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 21
+      "community": 27
     },
     {
       "id": "src_pages_calendarpage_tsx_import_components_calendar_calendarview_calendarview",
@@ -2370,7 +2497,7 @@
       "source_file": "./src/pages/CalendarPage.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 21
+      "community": 27
     },
     {
       "id": "src_pages_calendarpage_tsx_import_stores_calendarstore_usecalendarstore",
@@ -2378,7 +2505,7 @@
       "source_file": "./src/pages/CalendarPage.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 21
+      "community": 27
     },
     {
       "id": "src_pages_calendarpage_tsx_import_stores_taskstore_usetaskstore",
@@ -2386,7 +2513,7 @@
       "source_file": "./src/pages/CalendarPage.tsx",
       "source_location": "L5",
       "node_type": "module",
-      "community": 21
+      "community": 27
     },
     {
       "id": "src_pages_calendarpage_tsx_import_components_tasks_taskdetailpanel_taskdetailpanel",
@@ -2394,14 +2521,14 @@
       "source_file": "./src/pages/CalendarPage.tsx",
       "source_location": "L6",
       "node_type": "module",
-      "community": 21
+      "community": 27
     },
     {
       "id": "src_pages_settingspage_tsx",
       "label": "SettingsPage",
       "source_file": "./src/pages/SettingsPage.tsx",
       "node_type": "file",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_react_useeffect",
@@ -2409,7 +2536,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_components_layout_topbar_topbar",
@@ -2417,7 +2544,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_stores_settingsstore_usesettingsstore",
@@ -2425,7 +2552,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_stores_pomodorostore_usepomodorostore",
@@ -2433,7 +2560,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_stores_updatestore_useupdatestore",
@@ -2441,7 +2568,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L5",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_types_update_appupdateinfo",
@@ -2449,7 +2576,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L6",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_types_update_updatestatus",
@@ -2457,7 +2584,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L6",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_types_task_syncaccount",
@@ -2465,7 +2592,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L7",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_import_types_task_syncprovider",
@@ -2473,7 +2600,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L7",
       "node_type": "module",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_updatepomodorominutes",
@@ -2481,7 +2608,7 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L50",
       "node_type": "function",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_settingspage_tsx_updatebadgeclass",
@@ -2489,14 +2616,14 @@
       "source_file": "./src/pages/SettingsPage.tsx",
       "source_location": "L169",
       "node_type": "function",
-      "community": 7
+      "community": 8
     },
     {
       "id": "src_pages_taskspage_tsx",
       "label": "TasksPage",
       "source_file": "./src/pages/TasksPage.tsx",
       "node_type": "file",
-      "community": 19
+      "community": 21
     },
     {
       "id": "src_pages_taskspage_tsx_import_react_useeffect",
@@ -2504,7 +2631,7 @@
       "source_file": "./src/pages/TasksPage.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 19
+      "community": 21
     },
     {
       "id": "src_pages_taskspage_tsx_import_components_layout_topbar_topbar",
@@ -2512,7 +2639,7 @@
       "source_file": "./src/pages/TasksPage.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 19
+      "community": 21
     },
     {
       "id": "src_pages_taskspage_tsx_import_components_tasks_tasklist_tasklist",
@@ -2520,7 +2647,7 @@
       "source_file": "./src/pages/TasksPage.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 19
+      "community": 21
     },
     {
       "id": "src_pages_taskspage_tsx_import_components_tasks_taskdetailpanel_taskdetailpanel",
@@ -2528,7 +2655,7 @@
       "source_file": "./src/pages/TasksPage.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 19
+      "community": 21
     },
     {
       "id": "src_pages_taskspage_tsx_import_components_tasks_taskfilters_taskfilters",
@@ -2536,7 +2663,7 @@
       "source_file": "./src/pages/TasksPage.tsx",
       "source_location": "L5",
       "node_type": "module",
-      "community": 19
+      "community": 21
     },
     {
       "id": "src_pages_taskspage_tsx_import_stores_taskstore_usetaskstore",
@@ -2544,7 +2671,7 @@
       "source_file": "./src/pages/TasksPage.tsx",
       "source_location": "L6",
       "node_type": "module",
-      "community": 19
+      "community": 21
     },
     {
       "id": "src_pages_taskspage_tsx_taskspage",
@@ -2552,14 +2679,14 @@
       "source_file": "./src/pages/TasksPage.tsx",
       "source_location": "L8",
       "node_type": "function",
-      "community": 19
+      "community": 21
     },
     {
       "id": "src_pages_pomodoropage_tsx",
       "label": "PomodoroPage",
       "source_file": "./src/pages/PomodoroPage.tsx",
       "node_type": "file",
-      "community": 29
+      "community": 28
     },
     {
       "id": "src_pages_pomodoropage_tsx_import_react_useeffect",
@@ -2567,7 +2694,7 @@
       "source_file": "./src/pages/PomodoroPage.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 29
+      "community": 28
     },
     {
       "id": "src_pages_pomodoropage_tsx_import_dayjs_dayjs",
@@ -2575,7 +2702,7 @@
       "source_file": "./src/pages/PomodoroPage.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 29
+      "community": 28
     },
     {
       "id": "src_pages_pomodoropage_tsx_import_components_layout_topbar_topbar",
@@ -2583,7 +2710,7 @@
       "source_file": "./src/pages/PomodoroPage.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 29
+      "community": 28
     },
     {
       "id": "src_pages_pomodoropage_tsx_import_stores_pomodorostore_usepomodorostore",
@@ -2591,7 +2718,7 @@
       "source_file": "./src/pages/PomodoroPage.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 29
+      "community": 28
     },
     {
       "id": "src_pages_pomodoropage_tsx_import_stores_settingsstore_usesettingsstore",
@@ -2599,14 +2726,14 @@
       "source_file": "./src/pages/PomodoroPage.tsx",
       "source_location": "L5",
       "node_type": "module",
-      "community": 29
+      "community": 28
     },
     {
       "id": "src_pages_todaypage_tsx",
       "label": "TodayPage",
       "source_file": "./src/pages/TodayPage.tsx",
       "node_type": "file",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_import_dayjs_dayjs",
@@ -2614,7 +2741,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L1",
       "node_type": "module",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_import_react_useeffect",
@@ -2622,7 +2749,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L2",
       "node_type": "module",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_import_components_layout_topbar_topbar",
@@ -2630,7 +2757,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L3",
       "node_type": "module",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_import_components_tasks_tasklist_tasklist",
@@ -2638,7 +2765,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L4",
       "node_type": "module",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_import_components_tasks_taskdetailpanel_taskdetailpanel",
@@ -2646,7 +2773,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L5",
       "node_type": "module",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_import_stores_taskstore_usetaskstore",
@@ -2654,7 +2781,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L6",
       "node_type": "module",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_import_utils_taskutils_grouptasksfortoday",
@@ -2662,7 +2789,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L7",
       "node_type": "module",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_todaypage",
@@ -2670,7 +2797,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L9",
       "node_type": "function",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_summary",
@@ -2678,7 +2805,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L43",
       "node_type": "function",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_pages_todaypage_tsx_tasksection",
@@ -2686,7 +2813,7 @@
       "source_file": "./src/pages/TodayPage.tsx",
       "source_location": "L52",
       "node_type": "function",
-      "community": 9
+      "community": 12
     },
     {
       "id": "src_services_taskservice_ts",
@@ -3059,7 +3186,7 @@
       "label": "updateService",
       "source_file": "./src/services/updateService.ts",
       "node_type": "file",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_import_types_update_releaseasset",
@@ -3067,7 +3194,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_import_types_update_appupdateinfo",
@@ -3075,7 +3202,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L1",
       "node_type": "module",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_checkforupdates",
@@ -3083,7 +3210,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L37",
       "node_type": "function",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_openexternalurl",
@@ -3091,7 +3218,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L77",
       "node_type": "function",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_getpreferredinstallasset",
@@ -3099,7 +3226,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L91",
       "node_type": "function",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_compareversions",
@@ -3107,7 +3234,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L110",
       "node_type": "function",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_normalizeversion",
@@ -3115,7 +3242,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L125",
       "node_type": "function",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_parseversion",
@@ -3123,7 +3250,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L132",
       "node_type": "function",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_detectplatform",
@@ -3131,7 +3258,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L143",
       "node_type": "function",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_ts_isinstallerasset",
@@ -3139,7 +3266,7 @@
       "source_file": "./src/services/updateService.ts",
       "source_location": "L152",
       "node_type": "function",
-      "community": 11
+      "community": 13
     },
     {
       "id": "src_services_updateservice_test_ts",
@@ -8966,7 +9093,7 @@
     },
     {
       "source": "src_app_tsx",
-      "target": "src_app_tsx_import_stores_updatestore_useupdatestore",
+      "target": "src_app_tsx_import_pages_cockpitpage_cockpitpage",
       "relation": "imports",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
@@ -8976,12 +9103,22 @@
     },
     {
       "source": "src_app_tsx",
+      "target": "src_app_tsx_import_stores_updatestore_useupdatestore",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/App.tsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_app_tsx",
       "target": "src_app_tsx_app",
       "relation": "defines",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "./src/App.tsx",
-      "source_location": "L11",
+      "source_location": "L12",
       "weight": 1.0
     },
     {
@@ -10071,12 +10208,152 @@
     },
     {
       "source": "src_components_layout_sidebar_tsx",
+      "target": "src_components_layout_sidebar_tsx_import_src_tauri_icons_icon_png_appicon",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/components/layout/Sidebar.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_components_layout_sidebar_tsx",
       "target": "src_components_layout_sidebar_tsx_sidebar",
       "relation": "defines",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "./src/components/layout/Sidebar.tsx",
-      "source_location": "L11",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_react_formevent",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_react_useeffect",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_react_usememo",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_react_usestate",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_dayjs_dayjs",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_stores_pomodorostore_usepomodorostore",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_stores_taskstore_usetaskstore",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_types_task_task",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_utils_taskutils_formattasktime",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_import_utils_taskutils_grouptasksfortoday",
+      "relation": "imports",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_submittask",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L61",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_togglepin",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L76",
+      "weight": 1.0
+    },
+    {
+      "source": "src_pages_cockpitpage_tsx",
+      "target": "src_pages_cockpitpage_tsx_closewindow",
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "./src/pages/CockpitPage.tsx",
+      "source_location": "L87",
       "weight": 1.0
     },
     {

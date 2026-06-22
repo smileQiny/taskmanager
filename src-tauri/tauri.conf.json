@@ -12,11 +12,27 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Task Manager",
         "width": 1200,
         "height": 800,
         "resizable": true,
         "fullscreen": false
+      },
+      {
+        "label": "cockpit",
+        "title": "今日驾驶舱",
+        "url": "/?window=cockpit",
+        "width": 342,
+        "height": 458,
+        "minWidth": 342,
+        "minHeight": 458,
+        "resizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "center": true
       }
     ],
     "security": {

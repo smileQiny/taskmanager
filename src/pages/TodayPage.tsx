@@ -27,7 +27,7 @@ export function TodayPage() {
         <div className="flex-1 overflow-y-auto p-5">
           <div className="mb-6 grid grid-cols-3 gap-3">
             <Summary label="逾期" value={grouped.overdue.length} tone="text-rose-600" />
-            <Summary label="今日" value={grouped.today.length} tone="text-teal-600" />
+            <Summary label="今日" value={grouped.today.length} tone="text-blue-700" />
             <Summary label="未安排" value={grouped.unscheduled.length} tone="text-slate-600" />
           </div>
           <TaskSection title="逾期" tasks={grouped.overdue} selectedTaskId={selectedTaskId} emptyText="没有逾期任务" />
@@ -42,7 +42,7 @@ export function TodayPage() {
 
 function Summary({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
-    <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+    <div className="rounded-xl border border-[#dbe5f1] bg-white/84 px-4 py-3 shadow-sm">
       <p className="text-xs text-slate-500">{label}</p>
       <p className={`mt-1 text-2xl font-semibold ${tone}`}>{value}</p>
     </div>

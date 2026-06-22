@@ -12,7 +12,7 @@ export function TaskList({ tasks, selectedTaskId, emptyText = '暂无任务' }: 
     return <p className="py-8 text-center text-sm text-slate-400">{emptyText}</p>;
   }
   return (
-    <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+    <div className="overflow-hidden rounded-xl border border-[#dbe5f1] bg-white/88 shadow-sm">
       {tasks.map((task) => (
         <TaskCard key={task.id} task={task} selected={selectedTaskId === task.id} />
       ))}

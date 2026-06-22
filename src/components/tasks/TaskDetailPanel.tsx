@@ -87,7 +87,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
 
   if (!isOpen) {
     return (
-      <aside className="hidden md:flex w-80 shrink-0 border-l border-slate-200 bg-slate-50/70 px-5 py-6">
+      <aside className="hidden md:flex w-80 shrink-0 border-l border-[#dbe5f1] bg-white/54 px-5 py-6 backdrop-blur">
         <div className="self-center text-sm text-slate-400">
           选择任务或新建任务后，详情会显示在这里。
         </div>
@@ -127,12 +127,12 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
   };
 
   return (
-    <aside className="w-full md:w-96 shrink-0 border-l border-slate-200 bg-white">
+    <aside className="w-full md:w-96 shrink-0 border-l border-[#dbe5f1] bg-white/82 backdrop-blur">
       <form onSubmit={handleSubmit} className="flex h-full flex-col">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div className="flex items-center justify-between border-b border-[#dbe5f1] px-5 py-4">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{panelTitle}</p>
-            <h2 className="text-lg font-semibold text-slate-950">{task ? task.title : '安排一件事'}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{task ? task.title : '安排一件事'}</h2>
           </div>
           <button type="button" className="btn btn-ghost btn-sm" onClick={closePanel}>关闭</button>
         </div>
@@ -141,7 +141,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
           <label className="form-control">
             <span className="label-text mb-1 text-slate-500">标题</span>
             <input
-              className="input input-bordered bg-white text-base font-medium"
+              className="input input-bordered border-slate-200 bg-white/90 text-base font-medium"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="输入任务标题"
@@ -152,7 +152,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
           <label className="form-control">
             <span className="label-text mb-1 text-slate-500">描述</span>
             <textarea
-              className="textarea textarea-bordered min-h-28 bg-white"
+              className="textarea textarea-bordered min-h-28 border-slate-200 bg-white/90"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="补充背景、链接或验收标准"
@@ -162,7 +162,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
           <div className="grid grid-cols-2 gap-3">
             <label className="form-control">
               <span className="label-text mb-1 text-slate-500">状态</span>
-              <select className="select select-bordered bg-white" value={status} onChange={(event) => setStatus(event.target.value as Task['status'])}>
+              <select className="select select-bordered border-slate-200 bg-white/90" value={status} onChange={(event) => setStatus(event.target.value as Task['status'])}>
                 {Object.entries(statusLabels).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
@@ -170,7 +170,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
             </label>
             <label className="form-control">
               <span className="label-text mb-1 text-slate-500">优先级</span>
-              <select className="select select-bordered bg-white" value={priority} onChange={(event) => setPriority(event.target.value as Task['priority'])}>
+              <select className="select select-bordered border-slate-200 bg-white/90" value={priority} onChange={(event) => setPriority(event.target.value as Task['priority'])}>
                 {Object.entries(priorityLabels).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
@@ -178,7 +178,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
             </label>
           </div>
 
-          <label className="flex items-center gap-3 rounded-md border border-slate-200 px-3 py-2">
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/70 px-3 py-2">
             <input type="checkbox" className="toggle toggle-sm toggle-primary" checked={allDay} onChange={(event) => setAllDay(event.target.checked)} />
             <span className="text-sm text-slate-600">全天任务</span>
           </label>
@@ -186,18 +186,18 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
           <div className="grid grid-cols-1 gap-3">
             <label className="form-control">
               <span className="label-text mb-1 text-slate-500">开始时间</span>
-              <input className="input input-bordered bg-white" type="datetime-local" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+              <input className="input input-bordered border-slate-200 bg-white/90" type="datetime-local" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
             </label>
             <label className="form-control">
               <span className="label-text mb-1 text-slate-500">结束时间</span>
-              <input className="input input-bordered bg-white" type="datetime-local" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
+              <input className="input input-bordered border-slate-200 bg-white/90" type="datetime-local" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
             </label>
           </div>
 
           <label className="form-control">
             <span className="label-text mb-1 text-slate-500">标签</span>
             <input
-              className="input input-bordered bg-white"
+              className="input input-bordered border-slate-200 bg-white/90"
               value={tags}
               onChange={(event) => setTags(event.target.value)}
               placeholder="work, home"
@@ -205,7 +205,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
           </label>
 
           {task && (
-            <section className="rounded-md border border-slate-200 p-3">
+            <section className="rounded-xl border border-slate-200 bg-white/62 p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-medium text-slate-700">远端同步</span>
                 {syncError && <span className="text-xs text-rose-600">{syncError}</span>}
@@ -214,7 +214,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                 {syncProviders.map(({ provider, label }) => {
                   const state = syncStates.find((item) => item.provider === provider);
                   return (
-                    <label key={provider} className="flex items-center justify-between rounded bg-slate-50 px-2 py-2 text-sm">
+                    <label key={provider} className="flex items-center justify-between rounded-lg bg-slate-50/90 px-2 py-2 text-sm">
                       <span>
                         <span className="block text-slate-700">{label}</span>
                         <span className="text-xs text-slate-400">{state ? syncStatusLabel(state.sync_status) : '未选择'}</span>
@@ -233,7 +233,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
           )}
         </div>
 
-        <div className="border-t border-slate-200 px-5 py-4">
+        <div className="border-t border-[#dbe5f1] px-5 py-4">
           {task && (
             <div className="mb-3">
               {confirmDelete ? (

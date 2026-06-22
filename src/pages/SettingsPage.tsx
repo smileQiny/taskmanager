@@ -58,19 +58,19 @@ export function SettingsPage() {
       <div className="flex-1 overflow-y-auto p-5">
         {error && <div className="mb-4 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>}
         <div className="max-w-3xl space-y-5">
-          <section className="rounded-md border border-slate-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-slate-950">偏好</h2>
+          <section className="rounded-xl border border-[#dbe5f1] bg-white/86 p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-slate-900">偏好</h2>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               <label className="form-control">
                 <span className="label-text mb-1 text-slate-500">主题</span>
-                <select className="select select-bordered bg-white" value={settings.theme} onChange={(event) => void updateSettings({ theme: event.target.value as 'light' | 'dark' })}>
+                <select className="select select-bordered border-slate-200 bg-white/90" value={settings.theme} onChange={(event) => void updateSettings({ theme: event.target.value as 'light' | 'dark' })}>
                   <option value="light">浅色</option>
                   <option value="dark">深色</option>
                 </select>
               </label>
               <label className="form-control">
                 <span className="label-text mb-1 text-slate-500">默认日历</span>
-                <select className="select select-bordered bg-white" value={settings.default_calendar_view} onChange={(event) => void updateSettings({ default_calendar_view: event.target.value as 'month' | 'week' | 'day' })}>
+                <select className="select select-bordered border-slate-200 bg-white/90" value={settings.default_calendar_view} onChange={(event) => void updateSettings({ default_calendar_view: event.target.value as 'month' | 'week' | 'day' })}>
                   <option value="month">月</option>
                   <option value="week">周</option>
                   <option value="day">日</option>
@@ -78,13 +78,13 @@ export function SettingsPage() {
               </label>
               <label className="form-control">
                 <span className="label-text mb-1 text-slate-500">番茄钟分钟</span>
-                <input className="input input-bordered bg-white" type="number" min={5} max={120} value={settings.pomodoro_minutes} onChange={(event) => void updatePomodoroMinutes(Number(event.target.value))} />
+                <input className="input input-bordered border-slate-200 bg-white/90" type="number" min={5} max={120} value={settings.pomodoro_minutes} onChange={(event) => void updatePomodoroMinutes(Number(event.target.value))} />
               </label>
             </div>
           </section>
 
-          <section className="rounded-md border border-slate-200 bg-white p-5">
-            <h2 className="text-sm font-semibold text-slate-950">本地数据</h2>
+          <section className="rounded-xl border border-[#dbe5f1] bg-white/86 p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-slate-900">本地数据</h2>
             <div className="mt-4 space-y-3 text-sm">
               <PathRow label="数据目录" value={metadata?.data_dir ?? (loading ? '加载中...' : '未读取')} />
               <PathRow label="数据库" value={metadata?.db_path ?? (loading ? '加载中...' : '未读取')} />
@@ -101,14 +101,14 @@ export function SettingsPage() {
             onDownload={() => void openPreferredDownload()}
           />
 
-          <section className="rounded-md border border-slate-200 bg-white p-5">
+          <section className="rounded-xl border border-[#dbe5f1] bg-white/86 p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-slate-950">远端同步</h2>
+                <h2 className="text-sm font-semibold text-slate-900">远端同步</h2>
                 <p className="mt-1 text-sm text-slate-500">先配置同步边界；真实远端同步需要各平台授权凭证。</p>
               </div>
               {lastSyncResult && (
-                <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                <span className="rounded bg-slate-100/90 px-2 py-1 text-xs text-slate-600">
                   {providerLabels[lastSyncResult.provider]} · {lastSyncResult.status}
                 </span>
               )}
@@ -160,12 +160,12 @@ function UpdateSection({
   const canDownload = status === 'update_available';
 
   return (
-    <section className="overflow-hidden rounded-md border border-slate-200 bg-white">
+    <section className="overflow-hidden rounded-xl border border-[#dbe5f1] bg-white/86 shadow-sm">
       <div className="border-b border-slate-100 p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold text-slate-950">版本与更新</h2>
+              <h2 className="text-sm font-semibold text-slate-900">版本与更新</h2>
               <span className={updateBadgeClass(status)}>{updateStatusLabel(status)}</span>
             </div>
             <p className="mt-1 text-sm text-slate-500">
@@ -173,10 +173,10 @@ function UpdateSection({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button className="btn btn-sm border-slate-200 bg-white" onClick={onCheck} disabled={isChecking}>
+            <button className="btn btn-sm border-slate-200 bg-white/90" onClick={onCheck} disabled={isChecking}>
               {isChecking ? '检查中...' : '检查更新'}
             </button>
-            <button className="btn btn-sm bg-slate-950 text-white hover:bg-slate-800" onClick={onDownload} disabled={!canDownload}>
+            <button className="btn btn-primary btn-sm" onClick={onDownload} disabled={!canDownload}>
               下载安装包
             </button>
           </div>
@@ -202,7 +202,7 @@ function UpdateSection({
                 {release.preferredAsset ? ` · ${release.preferredAsset.name}` : ' · 暂无可下载安装包'}
               </p>
             </div>
-            <button className="btn btn-sm border-slate-200 bg-white" onClick={onOpenRelease}>
+            <button className="btn btn-sm border-slate-200 bg-white/90" onClick={onOpenRelease}>
               查看 Release
             </button>
           </div>
@@ -230,7 +230,7 @@ function VersionMetric({
   return (
     <div className="border-t border-slate-100 px-5 py-4 md:border-t-0 md:first:border-r">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-1 text-lg font-semibold ${accent ? 'text-emerald-700' : 'text-slate-950'}`}>{value}</p>
+      <p className={`mt-1 text-lg font-semibold ${accent ? 'text-emerald-700' : 'text-slate-900'}`}>{value}</p>
     </div>
   );
 }
@@ -252,14 +252,14 @@ function SyncProviderRow({
         <div>
           <div className="flex items-center gap-2">
             <p className="font-medium text-slate-900">{providerLabels[account.provider]}</p>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{statusLabel(account.status)}</span>
+            <span className="rounded bg-slate-100/90 px-2 py-0.5 text-xs text-slate-500">{statusLabel(account.status)}</span>
           </div>
           <p className="mt-1 text-sm text-slate-500">{providerDescriptions[account.provider]}</p>
         </div>
         <label className="form-control">
           <span className="label-text mb-1 text-slate-500">非密钥配置 JSON</span>
           <input
-            className="input input-bordered input-sm bg-white font-mono text-xs"
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
             defaultValue={account.config ?? defaultProviderConfig(account.provider)}
             onBlur={(event) => onConfigSave(event.target.value)}
             placeholder={defaultProviderConfig(account.provider)}
@@ -303,7 +303,7 @@ function PathRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="mb-1 text-xs text-slate-500">{label}</p>
-      <code className="block overflow-x-auto rounded bg-slate-100 px-3 py-2 text-xs text-slate-600">{value}</code>
+      <code className="block overflow-x-auto rounded-lg bg-slate-100/90 px-3 py-2 text-xs text-slate-600">{value}</code>
     </div>
   );
 }
@@ -323,7 +323,7 @@ function updateBadgeClass(status: UpdateStatus): string {
   if (status === 'update_available') return `${base} bg-emerald-50 text-emerald-700`;
   if (status === 'error') return `${base} bg-rose-50 text-rose-700`;
   if (status === 'checking') return `${base} bg-sky-50 text-sky-700`;
-  return `${base} bg-slate-100 text-slate-600`;
+  return `${base} bg-slate-100/90 text-slate-600`;
 }
 
 function formatDateTime(value: string): string {
