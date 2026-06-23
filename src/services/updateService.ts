@@ -4,6 +4,8 @@ const githubOwner = 'smileQiny';
 const githubRepo = 'taskmanager';
 const githubLatestReleaseUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest`;
 const githubLatestJsonUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest/download/latest.json`;
+const defaultNativeUpdaterTimeoutMs = 10_000;
+const defaultUpdateMetadataTimeoutMs = 12_000;
 
 interface GitHubReleaseAsset {
   name: string;
@@ -35,6 +37,12 @@ interface TauriUpdaterManifest {
 interface CheckForUpdatesOptions {
   currentVersion?: string;
   apiUrl?: string;
+  nativeTimeoutMs?: number;
+  metadataTimeoutMs?: number;
+}
+
+interface InstallUpdateOptions {
+  nativeTimeoutMs?: number;
 }
 
 interface ParsedVersion {
@@ -49,7 +57,11 @@ export const latestJsonUrl = githubLatestJsonUrl;
 export async function checkForUpdates(options: CheckForUpdatesOptions = {}): Promise<AppUpdateInfo> {
   const currentVersion = normalizeVersion(options.currentVersion ?? appVersion);
   if (hasTauriRuntime() && !options.apiUrl) {
-    return checkNativeUpdater(currentVersion);
+    try {
+      return await checkNativeUpdater(currentVersion, options.nativeTimeoutMs);
+    } catch {
+      return checkRemoteUpdaterMetadata(currentVersion, githubLatestJsonUrl, options.metadataTimeoutMs);
+    }
   }
   if (!hasTauriRuntime() && !options.apiUrl) {
     return {
@@ -65,21 +77,19 @@ export async function checkForUpdates(options: CheckForUpdatesOptions = {}): Pro
     };
   }
 
-  const response = await fetch(options.apiUrl ?? githubLatestJsonUrl, {
-    headers: {
-      Accept: 'application/json',
-    },
-  });
+  return checkRemoteUpdaterMetadata(
+    currentVersion,
+    options.apiUrl ?? githubLatestJsonUrl,
+    options.metadataTimeoutMs,
+  );
+}
 
-  if (response.status === 404) {
-    throw new Error('没有找到更新元数据。请确认 GitHub Release 已上传 latest.json。');
-  }
-
-  if (!response.ok) {
-    throw new Error(`GitHub 更新检查失败：HTTP ${response.status}`);
-  }
-
-  const payload = await response.json() as GitHubRelease | TauriUpdaterManifest;
+async function checkRemoteUpdaterMetadata(
+  currentVersion: string,
+  url: string,
+  metadataTimeoutMs = defaultUpdateMetadataTimeoutMs,
+): Promise<AppUpdateInfo> {
+  const payload = await fetchUpdaterMetadata(url, metadataTimeoutMs);
   const release = isTauriUpdaterManifest(payload)
     ? mapUpdaterManifestToRelease(payload)
     : mapGitHubRelease(payload);
@@ -98,9 +108,52 @@ export async function checkForUpdates(options: CheckForUpdatesOptions = {}): Pro
   };
 }
 
-async function checkNativeUpdater(currentVersion: string): Promise<AppUpdateInfo> {
+async function fetchUpdaterMetadata(
+  url: string,
+  metadataTimeoutMs: number,
+): Promise<GitHubRelease | TauriUpdaterManifest> {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = controller
+    ? setTimeout(() => controller.abort(), normalizeTimeoutMs(metadataTimeoutMs))
+    : null;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+      },
+      signal: controller?.signal,
+    });
+
+    if (response.status === 404) {
+      throw new Error('没有找到更新元数据。请确认 GitHub Release 已上传 latest.json。');
+    }
+
+    if (!response.ok) {
+      throw new Error(`GitHub 更新检查失败：HTTP ${response.status}`);
+    }
+
+    return await response.json() as GitHubRelease | TauriUpdaterManifest;
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error('GitHub 更新检查超时，请稍后重试。');
+    }
+    throw error;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+async function checkNativeUpdater(
+  currentVersion: string,
+  nativeTimeoutMs = defaultNativeUpdaterTimeoutMs,
+): Promise<AppUpdateInfo> {
   const { check } = await import('@tauri-apps/plugin-updater');
-  const update = await check();
+  const update = await withTimeout(
+    check(),
+    nativeTimeoutMs,
+    'Tauri 自动更新检查超时。',
+  );
   const latestVersion = normalizeVersion(update?.version ?? currentVersion);
   const assets = mapNativeUpdateAssets(update?.rawJson);
 
@@ -207,30 +260,45 @@ export async function openExternalUrl(url: string): Promise<void> {
   opener(url, '_blank', 'noopener,noreferrer');
 }
 
-export async function installUpdateFromRelease(release: AppUpdateInfo | null): Promise<InstallUpdateResult> {
+export async function installUpdateFromRelease(
+  release: AppUpdateInfo | null,
+  options: InstallUpdateOptions = {},
+): Promise<InstallUpdateResult> {
   if (!release) {
     throw new Error('请先检查更新。');
   }
 
   if (hasTauriRuntime()) {
-    const { check } = await import('@tauri-apps/plugin-updater');
-    const { relaunch } = await import('@tauri-apps/plugin-process');
-    const update = await check();
+    try {
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const { relaunch } = await import('@tauri-apps/plugin-process');
+      const update = await withTimeout(
+        check(),
+        options.nativeTimeoutMs ?? defaultNativeUpdaterTimeoutMs,
+        'Tauri 自动更新检查超时。',
+      );
 
-    if (!update) {
+      if (!update) {
+        return {
+          action: 'up_to_date',
+          message: '当前已经是最新版本。',
+        };
+      }
+
+      await update.downloadAndInstall();
+      await relaunch();
+
       return {
-        action: 'up_to_date',
-        message: '当前已经是最新版本。',
+        action: 'installed',
+        message: '更新已安装，应用正在重启。',
+      };
+    } catch {
+      await openExternalUrl(release.releaseUrl);
+      return {
+        action: 'opened',
+        message: '自动更新未完成，已打开 GitHub Release 页面，请下载对应系统安装包完成更新。',
       };
     }
-
-    await update.downloadAndInstall();
-    await relaunch();
-
-    return {
-      action: 'installed',
-      message: '更新已安装，应用正在重启。',
-    };
   }
 
   await openExternalUrl(release.releaseUrl);
@@ -331,4 +399,26 @@ function getReleaseUrlFromAssets(assets: ReleaseAsset[]): string | null {
     return `https://github.com/${owner}/${repo}/releases/tag/${tag}`;
   }
   return null;
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), normalizeTimeoutMs(timeoutMs));
+  });
+
+  return Promise.race([
+    promise.finally(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    }),
+    timeout,
+  ]);
+}
+
+function normalizeTimeoutMs(timeoutMs: number): number {
+  return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : defaultNativeUpdaterTimeoutMs;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
 }
