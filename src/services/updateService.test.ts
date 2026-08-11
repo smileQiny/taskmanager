@@ -195,6 +195,66 @@ describe('update service', () => {
     expect(info.isUpdateAvailable).toBe(true);
   });
 
+  it('falls back to the GitHub release API when latest.json is unavailable', async () => {
+    const { check } = await import('@tauri-apps/plugin-updater');
+    vi.stubGlobal('window', { __TAURI_INTERNALS__: {} });
+    vi.stubGlobal('navigator', {
+      platform: 'MacIntel',
+      userAgent: 'Mac OS',
+    });
+    vi.mocked(check).mockRejectedValue(new Error('native updater unavailable'));
+    const timeout = new Error('aborted');
+    timeout.name = 'AbortError';
+    const fetch = vi
+      .fn()
+      .mockRejectedValueOnce(timeout)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          tag_name: 'v0.2.10',
+          name: 'TaskManager v0.2.10',
+          html_url: 'https://github.com/smileQiny/taskmanager/releases/tag/v0.2.10',
+          published_at: '2026-08-11T07:47:17Z',
+          assets: [
+            {
+              name: 'Task.Manager_0.2.10_aarch64.dmg',
+              browser_download_url: 'https://example.com/Task.Manager_0.2.10_aarch64.dmg',
+              size: 4_800_000,
+              content_type: 'application/octet-stream',
+            },
+            {
+              name: 'latest.json',
+              browser_download_url: 'https://example.com/latest.json',
+              size: 6060,
+              content_type: 'application/json',
+            },
+          ],
+        }),
+      } as Response);
+    vi.stubGlobal('fetch', fetch);
+
+    const info = await checkForUpdates({
+      currentVersion: '0.2.8',
+      nativeTimeoutMs: 1,
+      metadataTimeoutMs: 1,
+    });
+
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      'https://github.com/smileQiny/taskmanager/releases/latest/download/latest.json',
+      expect.any(Object),
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://api.github.com/repos/smileQiny/taskmanager/releases/latest',
+      expect.any(Object),
+    );
+    expect(info.latestVersion).toBe('0.2.10');
+    expect(info.preferredAsset?.name).toBe('Task.Manager_0.2.10_aarch64.dmg');
+    expect(info.isUpdateAvailable).toBe(true);
+  });
+
   it('selects a platform installer when possible', () => {
     vi.stubGlobal('navigator', {
       platform: 'MacIntel',
@@ -209,22 +269,25 @@ describe('update service', () => {
     expect(getPreferredInstallAsset(assets)?.name).toBe('TaskManager_0.2.0_aarch64.dmg');
   });
 
-  it('uses Tauri signed updater inside Tauri', async () => {
+  it('opens the preferred installer inside Tauri', async () => {
     const { check } = await import('@tauri-apps/plugin-updater');
-    const { relaunch } = await import('@tauri-apps/plugin-process');
-    const downloadAndInstall = vi.fn().mockResolvedValue(undefined);
-    vi.mocked(check).mockResolvedValue({
-      downloadAndInstall,
-    } as unknown as Awaited<ReturnType<typeof check>>);
-    vi.stubGlobal('window', { __TAURI_INTERNALS__: {} });
+    const open = vi.fn();
+    vi.stubGlobal('window', {
+      __TAURI_INTERNALS__: {},
+      open,
+    });
 
     const release = makeRelease();
     const result = await installUpdateFromRelease(release);
 
-    expect(check).toHaveBeenCalled();
-    expect(downloadAndInstall).toHaveBeenCalled();
-    expect(relaunch).toHaveBeenCalled();
-    expect(result.action).toBe('installed');
+    expect(check).not.toHaveBeenCalled();
+    expect(open).toHaveBeenCalledWith(
+      'https://github.com/smileQiny/taskmanager/releases/download/v0.2.2/Task.Manager_0.2.2_aarch64.dmg',
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(result.action).toBe('opened');
+    expect(result.message).toContain('安装包下载链接');
   });
 
   it('opens the release page in browser previews', async () => {
@@ -237,14 +300,14 @@ describe('update service', () => {
 
     expect(check).not.toHaveBeenCalled();
     expect(open).toHaveBeenCalledWith(
-      'https://github.com/smileQiny/taskmanager/releases/tag/v0.2.2',
+      'https://github.com/smileQiny/taskmanager/releases/download/v0.2.2/Task.Manager_0.2.2_aarch64.dmg',
       '_blank',
       'noopener,noreferrer',
     );
     expect(result.action).toBe('opened');
   });
 
-  it('opens the release page when the native install check times out', async () => {
+  it('does not wait for native self-update when opening the installer', async () => {
     const { check } = await import('@tauri-apps/plugin-updater');
     const open = vi.fn();
     vi.stubGlobal('window', {
@@ -255,14 +318,14 @@ describe('update service', () => {
 
     const result = await installUpdateFromRelease(makeRelease(), { nativeTimeoutMs: 1 });
 
-    expect(check).toHaveBeenCalled();
+    expect(check).not.toHaveBeenCalled();
     expect(open).toHaveBeenCalledWith(
-      'https://github.com/smileQiny/taskmanager/releases/tag/v0.2.2',
+      'https://github.com/smileQiny/taskmanager/releases/download/v0.2.2/Task.Manager_0.2.2_aarch64.dmg',
       '_blank',
       'noopener,noreferrer',
     );
     expect(result.action).toBe('opened');
-    expect(result.message).toContain('自动更新未完成');
+    expect(result.message).toContain('安装包下载链接');
   });
 });
 

@@ -19,22 +19,6 @@
         "height": 800,
         "resizable": true,
         "fullscreen": false
-      },
-      {
-        "label": "cockpit",
-        "title": "今日驾驶舱",
-        "url": "/?window=cockpit",
-        "width": 286,
-        "height": 342,
-        "minWidth": 286,
-        "minHeight": 342,
-        "resizable": false,
-        "fullscreen": false,
-        "decorations": false,
-        "transparent": true,
-        "shadow": false,
-        "alwaysOnTop": true,
-        "center": true
       }
     ],
     "security": {
