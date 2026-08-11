@@ -18,19 +18,21 @@
     </filter>
   </defs>
 
-  <rect width="1024" height="1024" rx="228" fill="url(#base)"/>
-  <path d="M192 258C192 214 228 178 272 178H752C796 178 832 214 832 258V766C832 810 796 846 752 846H272C228 846 192 810 192 766V258Z" fill="#ffffff" stroke="#dbeafe" stroke-width="28" filter="url(#softShadow)"/>
-  <path d="M282 312H742" stroke="#60a5fa" stroke-width="28" stroke-linecap="round"/>
-  <path d="M282 438H462" stroke="#cbd5e1" stroke-width="26" stroke-linecap="round"/>
-  <path d="M282 560H424" stroke="#cbd5e1" stroke-width="26" stroke-linecap="round"/>
-  <path d="M282 682H516" stroke="#cbd5e1" stroke-width="26" stroke-linecap="round"/>
+  <g transform="translate(72 72) scale(0.86)">
+    <rect width="1024" height="1024" rx="228" fill="url(#base)"/>
+    <path d="M192 258C192 214 228 178 272 178H752C796 178 832 214 832 258V766C832 810 796 846 752 846H272C228 846 192 810 192 766V258Z" fill="#ffffff" stroke="#dbeafe" stroke-width="28" filter="url(#softShadow)"/>
+    <path d="M282 312H742" stroke="#60a5fa" stroke-width="28" stroke-linecap="round"/>
+    <path d="M282 438H462" stroke="#cbd5e1" stroke-width="26" stroke-linecap="round"/>
+    <path d="M282 560H424" stroke="#cbd5e1" stroke-width="26" stroke-linecap="round"/>
+    <path d="M282 682H516" stroke="#cbd5e1" stroke-width="26" stroke-linecap="round"/>
 
-  <circle cx="724" cy="512" r="158" fill="#f8fafc" stroke="#e2e8f0" stroke-width="22"/>
-  <path d="M724 354A158 158 0 1 1 595 603" fill="none" stroke="url(#amber)" stroke-width="34" stroke-linecap="round"/>
-  <path d="M724 426V520L782 574" fill="none" stroke="#0f172a" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="724" cy="512" r="158" fill="#f8fafc" stroke="#e2e8f0" stroke-width="22"/>
+    <path d="M724 354A158 158 0 1 1 595 603" fill="none" stroke="url(#amber)" stroke-width="34" stroke-linecap="round"/>
+    <path d="M724 426V520L782 574" fill="none" stroke="#0f172a" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <path d="M250 520L382 652L606 392" fill="none" stroke="url(#blue)" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="284" cy="742" r="28" fill="#3b82f6"/>
-  <circle cx="394" cy="742" r="28" fill="#d97706"/>
-  <circle cx="504" cy="742" r="28" fill="#f43f5e"/>
+    <path d="M250 520L382 652L606 392" fill="none" stroke="url(#blue)" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="284" cy="742" r="28" fill="#3b82f6"/>
+    <circle cx="394" cy="742" r="28" fill="#d97706"/>
+    <circle cx="504" cy="742" r="28" fill="#f43f5e"/>
+  </g>
 </svg>

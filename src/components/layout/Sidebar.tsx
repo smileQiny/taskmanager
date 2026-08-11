@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import appIcon from '../../../src-tauri/icons/icon.png';
+import { openCockpitWindow } from '../../services/cockpitWindow';
 
 const links = [
   { to: '/', label: '今日', icon: '◎' },
@@ -10,11 +11,21 @@ const links = [
 ];
 
 export function Sidebar() {
+  const handleOpenCockpit = () => {
+    void openCockpitWindow();
+  };
+
   return (
     <aside className="flex h-screen w-20 shrink-0 flex-col items-center gap-3 border-r border-[#dbe5f1] bg-white/78 py-4 text-slate-500 shadow-[12px_0_36px_rgba(71,85,105,0.08)] backdrop-blur">
-      <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl bg-white/70 shadow-sm ring-1 ring-[#dbe5f1]">
-        <img src={appIcon} alt="Task Manager" className="h-9 w-9 rounded-[10px]" />
-      </div>
+      <button
+        aria-label="打开今日驾驶舱"
+        className="mb-4 grid h-10 w-10 place-items-center rounded-xl bg-white/70 shadow-sm ring-1 ring-[#dbe5f1] transition hover:bg-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-200"
+        onClick={handleOpenCockpit}
+        title="打开今日驾驶舱"
+        type="button"
+      >
+        <img src={appIcon} alt="Task Manager" className="h-7 w-7 rounded-[8px]" />
+      </button>
       {links.map(({ to, label, icon }) => (
         <NavLink
           key={to}
