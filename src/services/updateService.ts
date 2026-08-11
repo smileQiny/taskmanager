@@ -5,8 +5,11 @@ const githubRepo = 'taskmanager';
 const githubLatestReleaseUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest`;
 const githubLatestJsonUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest/download/latest.json`;
 const githubLatestApiUrl = `https://api.github.com/repos/${githubOwner}/${githubRepo}/releases/latest`;
+const installScriptUrl = `https://raw.githubusercontent.com/${githubOwner}/${githubRepo}/main/scripts/install.sh`;
+const windowsInstallScriptUrl = `https://raw.githubusercontent.com/${githubOwner}/${githubRepo}/main/scripts/install.ps1`;
 const defaultNativeUpdaterTimeoutMs = 10_000;
 const defaultUpdateMetadataTimeoutMs = 12_000;
+const defaultNativeInstallTimeoutMs = 300_000;
 
 interface GitHubReleaseAsset {
   name: string;
@@ -44,6 +47,7 @@ interface CheckForUpdatesOptions {
 
 interface InstallUpdateOptions {
   nativeTimeoutMs?: number;
+  downloadTimeoutMs?: number;
 }
 
 interface ParsedVersion {
@@ -272,19 +276,75 @@ export async function openExternalUrl(url: string): Promise<void> {
 
 export async function installUpdateFromRelease(
   release: AppUpdateInfo | null,
-  _options: InstallUpdateOptions = {},
+  options: InstallUpdateOptions = {},
 ): Promise<InstallUpdateResult> {
   if (!release) {
     throw new Error('请先检查更新。');
   }
 
-  const downloadUrl = release.preferredAsset?.downloadUrl ?? release.releaseUrl;
+  if (hasTauriRuntime()) {
+    try {
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const { relaunch } = await import('@tauri-apps/plugin-process');
+      const checkTimeoutMs = normalizeTimeoutMs(options.nativeTimeoutMs);
+      const update = await withTimeout(
+        check({ timeout: checkTimeoutMs }),
+        checkTimeoutMs,
+        'Tauri 自动更新检查超时。',
+      );
+
+      if (!update) {
+        if (!release.isUpdateAvailable) {
+          return {
+            action: 'up_to_date',
+            message: '当前已经是最新版本。',
+          };
+        }
+        throw new Error('Tauri updater 没有返回可安装更新。');
+      }
+
+      await update.downloadAndInstall(undefined, {
+        timeout: normalizeTimeoutMs(options.downloadTimeoutMs, defaultNativeInstallTimeoutMs),
+      });
+
+      try {
+        await relaunch();
+      } catch {
+        return {
+          action: 'installed',
+          message: '更新已安装，请手动重启应用。',
+        };
+      }
+
+      return {
+        action: 'installed',
+        message: '更新已安装，应用正在重启。',
+      };
+    } catch (error) {
+      return openManualUpdate(release, error);
+    }
+  }
+
+  return openManualUpdate(release);
+}
+
+async function openManualUpdate(
+  release: AppUpdateInfo,
+  nativeError?: unknown,
+): Promise<InstallUpdateResult> {
+  const downloadUrl = getManualUpdateUrl(release);
   await openExternalUrl(downloadUrl);
+  const manualCommand = getManualInstallCommand(release.latestVersion);
+  const reason = nativeError ? `自动更新未完成：${formatErrorMessage(nativeError)}。` : '';
+  const openedInstaller = Boolean(release.preferredAsset) && downloadUrl !== release.releaseUrl;
+  const message = openedInstaller
+    ? `${reason}已打开 GitHub 安装包下载链接。`
+    : `${reason}已打开 GitHub Release 页面，请下载对应系统安装包完成更新。`;
+
   return {
     action: 'opened',
-    message: release.preferredAsset
-      ? '已打开 GitHub 安装包下载链接。下载完成后安装并重新打开应用。'
-      : '已打开 GitHub Release 页面，请下载对应系统安装包完成更新。',
+    message: `${message}${getManualInstallHint(manualCommand)}`,
+    manualCommand,
   };
 }
 
@@ -349,6 +409,34 @@ function detectPlatform(): 'mac' | 'windows' | 'linux' | 'unknown' {
   return 'unknown';
 }
 
+function getManualUpdateUrl(release: AppUpdateInfo): string {
+  if (detectPlatform() === 'mac' && release.preferredAsset?.name.endsWith('.app.tar.gz')) {
+    return release.releaseUrl;
+  }
+  return release.preferredAsset?.downloadUrl ?? release.releaseUrl;
+}
+
+function getManualInstallCommand(version: string): string | undefined {
+  const tag = `v${normalizeVersion(version)}`;
+  switch (detectPlatform()) {
+    case 'mac':
+    case 'linux':
+      return `curl -fsSL ${installScriptUrl} | bash -s -- --version ${tag}`;
+    case 'windows':
+      return `$env:TASKMANAGER_VERSION = "${tag}"; irm ${windowsInstallScriptUrl} | iex`;
+    default:
+      return undefined;
+  }
+}
+
+function getManualInstallHint(manualCommand: string | undefined): string {
+  if (!manualCommand) return ' 下载完成后安装并重新打开应用。';
+  if (detectPlatform() === 'mac') {
+    return ' macOS 如果提示应用已损坏，请使用下方一键安装脚本。';
+  }
+  return ' 也可以使用下方一键安装脚本完成手动安装。';
+}
+
 function hasTauriRuntime(): boolean {
   return typeof window !== 'undefined'
     && Boolean((window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__);
@@ -395,10 +483,15 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
   ]);
 }
 
-function normalizeTimeoutMs(timeoutMs: number): number {
-  return Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : defaultNativeUpdaterTimeoutMs;
+function normalizeTimeoutMs(timeoutMs: number | undefined, fallback = defaultNativeUpdaterTimeoutMs): number {
+  return Number.isFinite(timeoutMs) && Number(timeoutMs) > 0 ? Number(timeoutMs) : fallback;
 }
 
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
+}
+
+function formatErrorMessage(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  return error.message || error.name;
 }

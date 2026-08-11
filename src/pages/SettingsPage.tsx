@@ -3,7 +3,7 @@ import { TopBar } from '../components/layout/TopBar';
 import { useSettingsStore } from '../stores/settingsStore';
 import { usePomodoroStore } from '../stores/pomodoroStore';
 import { useUpdateStore } from '../stores/updateStore';
-import { AppUpdateInfo, UpdateStatus } from '../types/update';
+import { AppUpdateInfo, InstallUpdateResult, UpdateStatus } from '../types/update';
 import { SyncAccount, SyncProvider } from '../types/task';
 import { minCockpitOpacity, maxCockpitOpacity } from '../utils/cockpitTransparency';
 
@@ -182,7 +182,7 @@ function UpdateSection({
 }: {
   currentVersion: string;
   release: AppUpdateInfo | null;
-  installResult: { message: string } | null;
+  installResult: InstallUpdateResult | null;
   status: UpdateStatus;
   error: string | null;
   onCheck: () => void;
@@ -203,7 +203,7 @@ function UpdateSection({
               <span className={updateBadgeClass(status)}>{updateStatusLabel(status)}</span>
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              启动时自动检查 GitHub 最新版本；点击后打开对应系统安装包。
+              启动时自动检查 GitHub 最新版本；点击后自动下载安装并重启。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -211,7 +211,7 @@ function UpdateSection({
               {isChecking ? '检查中...' : '检查更新'}
             </button>
             <button className="btn btn-primary btn-sm" onClick={onInstall} disabled={!canInstall || isInstalling}>
-              {isInstalling ? '打开中...' : '打开安装包'}
+              {isInstalling ? '安装中...' : '安装更新'}
             </button>
           </div>
         </div>
@@ -252,6 +252,11 @@ function UpdateSection({
       {status === 'update_handled' && installResult && (
         <div className="border-t border-emerald-100 bg-emerald-50 px-5 py-3 text-sm text-emerald-800">
           <p>{installResult.message}</p>
+          {installResult.manualCommand && (
+            <code className="mt-2 block overflow-x-auto rounded-lg border border-emerald-200 bg-white/80 px-3 py-2 font-mono text-xs text-emerald-950">
+              {installResult.manualCommand}
+            </code>
+          )}
         </div>
       )}
     </section>

@@ -84,6 +84,18 @@ extract_mount_point() {
   return 1
 }
 
+clear_macos_quarantine() {
+  local target="$1"
+  if [ "$PLATFORM" != "macos" ] || ! command -v xattr >/dev/null 2>&1; then
+    return 0
+  fi
+
+  xattr -dr com.apple.quarantine "$target" 2>/dev/null && return 0
+  if command -v sudo >/dev/null 2>&1; then
+    sudo xattr -dr com.apple.quarantine "$target" 2>/dev/null || true
+  fi
+}
+
 if [ "${SELF_TEST:-0}" = "1" ]; then
   SAMPLE_OUTPUT=$'/dev/disk4           GUID_partition_scheme\n/dev/disk4s1         Apple_HFS                       /Volumes/Task Manager'
   SAMPLE_RESULT="$(extract_mount_point "$SAMPLE_OUTPUT")"
@@ -238,6 +250,7 @@ curl -fL \
 
 install_macos_dmg() {
   require_cmd hdiutil
+  clear_macos_quarantine "$INSTALLER_PATH"
   echo "Mounting ${INSTALLER_PATH}"
   MOUNT_OUTPUT="$(hdiutil attach "$INSTALLER_PATH" -nobrowse)"
   MOUNT_POINT="$(extract_mount_point "$MOUNT_OUTPUT" || true)"
@@ -268,6 +281,7 @@ install_macos_dmg() {
     sudo rm -rf "$DESTINATION"
     sudo cp -R "$APP_PATH" /Applications/
   fi
+  clear_macos_quarantine "$DESTINATION"
   echo "Installed ${APP_NAME}. You can open it from /Applications."
 }
 

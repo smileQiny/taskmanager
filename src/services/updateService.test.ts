@@ -20,6 +20,7 @@ describe('update service', () => {
   beforeEach(() => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    vi.clearAllMocks();
     vi.restoreAllMocks();
     if (typeof window !== 'undefined') {
       delete (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__;
@@ -269,25 +270,29 @@ describe('update service', () => {
     expect(getPreferredInstallAsset(assets)?.name).toBe('TaskManager_0.2.0_aarch64.dmg');
   });
 
-  it('opens the preferred installer inside Tauri', async () => {
+  it('installs with the native signed updater inside Tauri', async () => {
     const { check } = await import('@tauri-apps/plugin-updater');
-    const open = vi.fn();
+    const { relaunch } = await import('@tauri-apps/plugin-process');
+    const downloadAndInstall = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('window', {
       __TAURI_INTERNALS__: {},
-      open,
+      open: vi.fn(),
     });
+    vi.mocked(check).mockResolvedValue({
+      currentVersion: '0.2.1',
+      version: '0.2.2',
+      rawJson: {},
+      downloadAndInstall,
+    } as unknown as Awaited<ReturnType<typeof check>>);
 
     const release = makeRelease();
     const result = await installUpdateFromRelease(release);
 
-    expect(check).not.toHaveBeenCalled();
-    expect(open).toHaveBeenCalledWith(
-      'https://github.com/smileQiny/taskmanager/releases/download/v0.2.2/Task.Manager_0.2.2_aarch64.dmg',
-      '_blank',
-      'noopener,noreferrer',
-    );
-    expect(result.action).toBe('opened');
-    expect(result.message).toContain('安装包下载链接');
+    expect(check).toHaveBeenCalledWith({ timeout: 10_000 });
+    expect(downloadAndInstall).toHaveBeenCalledWith(undefined, { timeout: 300_000 });
+    expect(relaunch).toHaveBeenCalled();
+    expect(result.action).toBe('installed');
+    expect(result.message).toContain('应用正在重启');
   });
 
   it('opens the release page in browser previews', async () => {
@@ -307,9 +312,13 @@ describe('update service', () => {
     expect(result.action).toBe('opened');
   });
 
-  it('does not wait for native self-update when opening the installer', async () => {
+  it('falls back to a manual installer command when native self-update times out', async () => {
     const { check } = await import('@tauri-apps/plugin-updater');
     const open = vi.fn();
+    vi.stubGlobal('navigator', {
+      platform: 'MacIntel',
+      userAgent: 'Mac OS',
+    });
     vi.stubGlobal('window', {
       __TAURI_INTERNALS__: {},
       open,
@@ -318,14 +327,46 @@ describe('update service', () => {
 
     const result = await installUpdateFromRelease(makeRelease(), { nativeTimeoutMs: 1 });
 
-    expect(check).not.toHaveBeenCalled();
+    expect(check).toHaveBeenCalledWith({ timeout: 1 });
     expect(open).toHaveBeenCalledWith(
       'https://github.com/smileQiny/taskmanager/releases/download/v0.2.2/Task.Manager_0.2.2_aarch64.dmg',
       '_blank',
       'noopener,noreferrer',
     );
     expect(result.action).toBe('opened');
-    expect(result.message).toContain('安装包下载链接');
+    expect(result.message).toContain('自动更新未完成');
+    expect(result.manualCommand).toContain('bash -s -- --version v0.2.2');
+  });
+
+  it('opens the release page instead of an updater tarball for manual macOS fallback', async () => {
+    const { check } = await import('@tauri-apps/plugin-updater');
+    const open = vi.fn();
+    vi.stubGlobal('navigator', {
+      platform: 'MacIntel',
+      userAgent: 'Mac OS',
+    });
+    vi.stubGlobal('window', {
+      __TAURI_INTERNALS__: {},
+      open,
+    });
+    vi.mocked(check).mockRejectedValue(new Error('native updater unavailable'));
+    const release = {
+      ...makeRelease(),
+      preferredAsset: {
+        name: 'Task.Manager_aarch64.app.tar.gz',
+        downloadUrl: 'https://github.com/smileQiny/taskmanager/releases/download/v0.2.2/Task.Manager_aarch64.app.tar.gz',
+        size: 1,
+      },
+    };
+
+    const result = await installUpdateFromRelease(release);
+
+    expect(open).toHaveBeenCalledWith(
+      'https://github.com/smileQiny/taskmanager/releases/tag/v0.2.2',
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(result.manualCommand).toContain('bash -s -- --version v0.2.2');
   });
 });
 
