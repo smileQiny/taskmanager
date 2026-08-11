@@ -4,6 +4,7 @@ const githubOwner = 'smileQiny';
 const githubRepo = 'taskmanager';
 const githubLatestReleaseUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest`;
 const githubLatestJsonUrl = `https://github.com/${githubOwner}/${githubRepo}/releases/latest/download/latest.json`;
+const githubLatestApiUrl = `https://api.github.com/repos/${githubOwner}/${githubRepo}/releases/latest`;
 const defaultNativeUpdaterTimeoutMs = 10_000;
 const defaultUpdateMetadataTimeoutMs = 12_000;
 
@@ -60,7 +61,7 @@ export async function checkForUpdates(options: CheckForUpdatesOptions = {}): Pro
     try {
       return await checkNativeUpdater(currentVersion, options.nativeTimeoutMs);
     } catch {
-      return checkRemoteUpdaterMetadata(currentVersion, githubLatestJsonUrl, options.metadataTimeoutMs);
+      return checkRemoteUpdateSources(currentVersion, options.metadataTimeoutMs);
     }
   }
   if (!hasTauriRuntime() && !options.apiUrl) {
@@ -77,11 +78,20 @@ export async function checkForUpdates(options: CheckForUpdatesOptions = {}): Pro
     };
   }
 
-  return checkRemoteUpdaterMetadata(
-    currentVersion,
-    options.apiUrl ?? githubLatestJsonUrl,
-    options.metadataTimeoutMs,
-  );
+  return options.apiUrl
+    ? checkRemoteUpdaterMetadata(currentVersion, options.apiUrl, options.metadataTimeoutMs)
+    : checkRemoteUpdateSources(currentVersion, options.metadataTimeoutMs);
+}
+
+async function checkRemoteUpdateSources(
+  currentVersion: string,
+  metadataTimeoutMs = defaultUpdateMetadataTimeoutMs,
+): Promise<AppUpdateInfo> {
+  try {
+    return await checkRemoteUpdaterMetadata(currentVersion, githubLatestJsonUrl, metadataTimeoutMs);
+  } catch {
+    return checkRemoteUpdaterMetadata(currentVersion, githubLatestApiUrl, metadataTimeoutMs);
+  }
 }
 
 async function checkRemoteUpdaterMetadata(
@@ -262,49 +272,19 @@ export async function openExternalUrl(url: string): Promise<void> {
 
 export async function installUpdateFromRelease(
   release: AppUpdateInfo | null,
-  options: InstallUpdateOptions = {},
+  _options: InstallUpdateOptions = {},
 ): Promise<InstallUpdateResult> {
   if (!release) {
     throw new Error('请先检查更新。');
   }
 
-  if (hasTauriRuntime()) {
-    try {
-      const { check } = await import('@tauri-apps/plugin-updater');
-      const { relaunch } = await import('@tauri-apps/plugin-process');
-      const update = await withTimeout(
-        check(),
-        options.nativeTimeoutMs ?? defaultNativeUpdaterTimeoutMs,
-        'Tauri 自动更新检查超时。',
-      );
-
-      if (!update) {
-        return {
-          action: 'up_to_date',
-          message: '当前已经是最新版本。',
-        };
-      }
-
-      await update.downloadAndInstall();
-      await relaunch();
-
-      return {
-        action: 'installed',
-        message: '更新已安装，应用正在重启。',
-      };
-    } catch {
-      await openExternalUrl(release.releaseUrl);
-      return {
-        action: 'opened',
-        message: '自动更新未完成，已打开 GitHub Release 页面，请下载对应系统安装包完成更新。',
-      };
-    }
-  }
-
-  await openExternalUrl(release.releaseUrl);
+  const downloadUrl = release.preferredAsset?.downloadUrl ?? release.releaseUrl;
+  await openExternalUrl(downloadUrl);
   return {
     action: 'opened',
-    message: '已打开 GitHub Release 页面。',
+    message: release.preferredAsset
+      ? '已打开 GitHub 安装包下载链接。下载完成后安装并重新打开应用。'
+      : '已打开 GitHub Release 页面，请下载对应系统安装包完成更新。',
   };
 }
 

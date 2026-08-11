@@ -203,7 +203,7 @@ function UpdateSection({
               <span className={updateBadgeClass(status)}>{updateStatusLabel(status)}</span>
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              启动时自动检查 GitHub 最新版本；点击后会下载、安装并重启应用。
+              启动时自动检查 GitHub 最新版本；点击后打开对应系统安装包。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -211,7 +211,7 @@ function UpdateSection({
               {isChecking ? '检查中...' : '检查更新'}
             </button>
             <button className="btn btn-primary btn-sm" onClick={onInstall} disabled={!canInstall || isInstalling}>
-              {isInstalling ? '下载中...' : '下载并安装'}
+              {isInstalling ? '打开中...' : '打开安装包'}
             </button>
           </div>
         </div>
