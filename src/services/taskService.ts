@@ -4,6 +4,7 @@ import {
   AppSettings,
   CreateTaskInput,
   PomodoroSession,
+  PomodoroTimerSnapshot,
   SyncAccount,
   SyncProvider,
   SyncRunResult,
@@ -18,6 +19,7 @@ const hasTauri = typeof window !== 'undefined' && Boolean((window as Window & { 
 const taskKey = 'taskmanager.tasks';
 const settingsKey = 'taskmanager.settings';
 const pomodoroKey = 'taskmanager.pomodoro';
+const pomodoroTimerKey = 'taskmanager.pomodoro.timer-state';
 const syncKey = 'taskmanager.syncAccounts';
 const taskSyncKey = 'taskmanager.taskSyncStates';
 
@@ -51,6 +53,20 @@ export const pomodoroService = {
     hasTauri ? invoke<PomodoroSession>('create_pomodoro_session', { input }) : Promise.resolve(createLocalPomodoroSession(input)),
   listSessions: (limit = 10) =>
     hasTauri ? invoke<PomodoroSession[]>('list_pomodoro_sessions', { limit }) : Promise.resolve(readPomodoroSessions().slice(0, limit)),
+  updateSessionRecord: (input: { id: string; note?: string | null; task_id?: string | null }) =>
+    hasTauri ? invoke<PomodoroSession | null>('update_pomodoro_session_record', { input }) : local(() => updateLocalPomodoroSessionRecord(input)),
+  getTimer: () =>
+    hasTauri ? invoke<PomodoroTimerSnapshot>('get_pomodoro_timer') : local(() => syncLocalPomodoroTimer()),
+  startTimer: () =>
+    hasTauri ? invoke<PomodoroTimerSnapshot>('start_pomodoro_timer') : local(() => startLocalPomodoroTimer()),
+  pauseTimer: () =>
+    hasTauri ? invoke<PomodoroTimerSnapshot>('pause_pomodoro_timer') : local(() => pauseLocalPomodoroTimer()),
+  resetTimer: () =>
+    hasTauri ? invoke<PomodoroTimerSnapshot>('reset_pomodoro_timer') : local(() => resetLocalPomodoroTimer()),
+  setTimerDuration: (minutes: number) =>
+    hasTauri ? invoke<PomodoroTimerSnapshot>('set_pomodoro_timer_duration', { minutes }) : local(() => setLocalPomodoroTimerDuration(minutes)),
+  completeTimer: () =>
+    hasTauri ? invoke<PomodoroTimerSnapshot>('complete_pomodoro_timer') : local(() => completeLocalPomodoroTimer()),
 };
 
 export const syncService = {
@@ -190,6 +206,14 @@ function readPomodoroSessions(): PomodoroSession[] {
   return readJson<PomodoroSession[]>(pomodoroKey, []);
 }
 
+function syncLocalPomodoroTimer(): PomodoroTimerSnapshot {
+  const timer = readLocalPomodoroTimer();
+  if (timer.running && getLocalTimerRemaining(timer) <= 0) {
+    return completeLocalPomodoroTimer();
+  }
+  return { timer: normalizeLocalPomodoroTimer(timer) };
+}
+
 function readSyncAccounts(): SyncAccount[] {
   const existing = readJson<SyncAccount[]>(syncKey, []);
   if (existing.length > 0) return existing;
@@ -259,9 +283,146 @@ function createLocalPomodoroSession(input: { started_at: number; duration: numbe
     started_at: input.started_at,
     duration: input.duration,
     completed: input.completed,
+    note: null,
+    task_id: null,
   };
   localStorage.setItem(pomodoroKey, JSON.stringify([session, ...readPomodoroSessions()]));
   return session;
+}
+
+function updateLocalPomodoroSessionRecord(input: { id: string; note?: string | null; task_id?: string | null }): PomodoroSession | null {
+  const sessions = readPomodoroSessions();
+  const session = sessions.find((item) => item.id === input.id);
+  if (!session) return null;
+  const updated: PomodoroSession = {
+    ...session,
+    note: normalizeOptionalText(input.note),
+    task_id: normalizeOptionalText(input.task_id),
+  };
+  localStorage.setItem(pomodoroKey, JSON.stringify(sessions.map((item) => item.id === input.id ? updated : item)));
+  return updated;
+}
+
+function startLocalPomodoroTimer(): PomodoroTimerSnapshot {
+  const synced = syncLocalPomodoroTimer();
+  if (synced.completion) return startLocalPomodoroTimer();
+  const timer = synced.timer;
+  const now = nowSeconds();
+  const startedAt = now - (timer.duration - timer.remaining);
+  return writeLocalPomodoroTimer({
+    duration: timer.duration,
+    remaining: timer.remaining,
+    running: true,
+    started_at: startedAt,
+    updated_at: now,
+  });
+}
+
+function pauseLocalPomodoroTimer(): PomodoroTimerSnapshot {
+  const synced = syncLocalPomodoroTimer();
+  if (synced.completion) return synced;
+  const now = nowSeconds();
+  return writeLocalPomodoroTimer({
+    ...synced.timer,
+    remaining: synced.timer.remaining,
+    running: false,
+    started_at: null,
+    updated_at: now,
+  });
+}
+
+function resetLocalPomodoroTimer(): PomodoroTimerSnapshot {
+  const timer = readLocalPomodoroTimer();
+  return writeLocalPomodoroTimer({
+    duration: timer.duration,
+    remaining: timer.duration,
+    running: false,
+    started_at: null,
+    updated_at: nowSeconds(),
+  });
+}
+
+function setLocalPomodoroTimerDuration(minutes: number): PomodoroTimerSnapshot {
+  if (!Number.isFinite(minutes) || minutes < 5 || minutes > 120) {
+    throw new Error('pomodoro timer minutes must be between 5 and 120');
+  }
+  const duration = Math.round(minutes) * 60;
+  return writeLocalPomodoroTimer({
+    duration,
+    remaining: duration,
+    running: false,
+    started_at: null,
+    updated_at: nowSeconds(),
+  });
+}
+
+function completeLocalPomodoroTimer(): PomodoroTimerSnapshot {
+  const timer = readLocalPomodoroTimer();
+  const now = nowSeconds();
+  const session = createLocalPomodoroSession({
+    started_at: timer.started_at ?? now,
+    duration: timer.duration,
+    completed: true,
+  });
+  const snapshot = writeLocalPomodoroTimer({
+    duration: timer.duration,
+    remaining: timer.duration,
+    running: false,
+    started_at: null,
+    updated_at: now,
+  });
+  return {
+    ...snapshot,
+    completion: {
+      session,
+      completed_at: now,
+      duration: timer.duration,
+    },
+  };
+}
+
+function readLocalPomodoroTimer(): PomodoroTimerSnapshot['timer'] {
+  return normalizeLocalPomodoroTimer(readJson<Partial<PomodoroTimerSnapshot['timer']>>(pomodoroTimerKey, {}));
+}
+
+function writeLocalPomodoroTimer(timer: PomodoroTimerSnapshot['timer']): PomodoroTimerSnapshot {
+  const normalized = normalizeLocalPomodoroTimer(timer);
+  localStorage.setItem(pomodoroTimerKey, JSON.stringify(normalized));
+  return { timer: normalized };
+}
+
+function normalizeLocalPomodoroTimer(timer: Partial<PomodoroTimerSnapshot['timer']>): PomodoroTimerSnapshot['timer'] {
+  const duration = Number.isFinite(timer.duration) && Number(timer.duration) > 0
+    ? Math.round(Number(timer.duration))
+    : 25 * 60;
+  const running = Boolean(timer.running);
+  const startedAt = Number.isFinite(timer.started_at) ? Number(timer.started_at) : null;
+  const remaining = running && startedAt !== null
+    ? Math.max(0, Math.min(duration, duration - (nowSeconds() - startedAt)))
+    : Math.max(0, Math.min(duration, Math.round(Number(timer.remaining ?? duration))));
+  return {
+    duration,
+    remaining,
+    running: running && remaining > 0,
+    started_at: running && startedAt !== null ? startedAt : null,
+    updated_at: Number.isFinite(timer.updated_at) ? Number(timer.updated_at) : nowSeconds(),
+  };
+}
+
+function getLocalTimerRemaining(timer: PomodoroTimerSnapshot['timer']): number {
+  if (!timer.running || timer.started_at === null || timer.started_at === undefined) {
+    return timer.remaining;
+  }
+  return Math.max(0, Math.min(timer.duration, timer.duration - (nowSeconds() - timer.started_at)));
+}
+
+function nowSeconds(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
+function normalizeOptionalText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
 }
 
 function readAllTaskSyncStates(): TaskSyncState[] {

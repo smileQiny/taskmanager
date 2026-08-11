@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { PomodoroSession } from '../types/task';
+import { PomodoroSession, PomodoroTimerSnapshot } from '../types/task';
 import { pomodoroService } from '../services/taskService';
 import { notifyPomodoroComplete, preparePomodoroNotifications } from '../services/notificationService';
 
@@ -18,19 +18,23 @@ interface PomodoroStore {
   sessions: PomodoroSession[];
   lastCompletion: PomodoroCompletion | null;
   error: string | null;
-  setDurationMinutes: (minutes: number) => void;
-  start: () => void;
-  pause: () => void;
-  reset: () => void;
-  tick: () => void;
+  refreshTimer: () => Promise<void>;
+  setDurationMinutes: (minutes: number) => Promise<void>;
+  start: () => Promise<void>;
+  pause: () => Promise<void>;
+  reset: () => Promise<void>;
+  tick: () => Promise<void>;
   complete: () => Promise<PomodoroCompletion | null>;
+  updateSessionRecord: (input: { id: string; note?: string | null; task_id?: string | null }) => Promise<PomodoroSession | null>;
   clearLastCompletion: (sessionId?: string) => void;
   fetchSessions: () => Promise<void>;
 }
 
+const defaultDuration = 25 * 60;
+
 export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
-  duration: 25 * 60,
-  remaining: 25 * 60,
+  duration: defaultDuration,
+  remaining: defaultDuration,
   running: false,
   completing: false,
   startedAt: null,
@@ -38,53 +42,86 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
   lastCompletion: null,
   error: null,
 
-  setDurationMinutes: (minutes) => {
-    const duration = minutes * 60;
-    set({ duration, remaining: duration, running: false, completing: false, startedAt: null });
+  refreshTimer: async () => {
+    if (get().completing) return;
+    try {
+      await applyTimerSnapshot(await pomodoroService.getTimer(), set);
+    } catch (e) {
+      set({ error: String(e) });
+    }
   },
 
-  start: () => {
-    set((s) => ({ running: true, startedAt: s.startedAt ?? Math.floor(Date.now() / 1000) }));
-    void preparePomodoroNotifications();
-  },
-  pause: () => set({ running: false }),
-  reset: () => set((s) => ({ running: false, remaining: s.duration, startedAt: null })),
-  tick: () => {
-    const { running, completing, remaining, complete } = get();
-    if (!running || completing) return;
-    if (remaining <= 1) {
-      set({ running: false, remaining: 0 });
-      void complete();
-      return;
+  setDurationMinutes: async (minutes) => {
+    try {
+      await applyTimerSnapshot(await pomodoroService.setTimerDuration(minutes), set);
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
     }
-    set({ remaining: remaining - 1 });
+  },
+
+  start: async () => {
+    try {
+      await applyTimerSnapshot(await pomodoroService.startTimer(), set);
+      void preparePomodoroNotifications();
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  pause: async () => {
+    try {
+      await applyTimerSnapshot(await pomodoroService.pauseTimer(), set);
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  reset: async () => {
+    try {
+      await applyTimerSnapshot(await pomodoroService.resetTimer(), set);
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  tick: async () => {
+    if (get().completing) return;
+    try {
+      await applyTimerSnapshot(await pomodoroService.getTimer(), set);
+    } catch (e) {
+      set({ error: String(e) });
+    }
   },
 
   complete: async () => {
-    const { completing, startedAt, duration } = get();
-    if (completing) return null;
-    const completedAt = Math.floor(Date.now() / 1000);
-    set({ completing: true, running: false, remaining: 0, error: null });
+    if (get().completing) return null;
+    set({ completing: true, error: null });
     try {
-      const session = await pomodoroService.createSession({
-        started_at: startedAt ?? Math.floor(Date.now() / 1000),
-        duration,
-        completed: true,
-      });
-      const completion = { session, completedAt, duration };
+      return await applyTimerSnapshot(await pomodoroService.completeTimer(), set);
+    } catch (e) {
+      set({ error: String(e), completing: false });
+      throw e;
+    }
+  },
+
+  updateSessionRecord: async (input) => {
+    try {
+      const session = await pomodoroService.updateSessionRecord(input);
+      if (!session) return null;
       set((s) => ({
-        completing: false,
-        running: false,
-        remaining: s.duration,
-        startedAt: null,
-        sessions: [session, ...s.sessions].slice(0, 10),
-        lastCompletion: completion,
+        sessions: s.sessions.map((item) => item.id === session.id ? session : item),
+        lastCompletion: s.lastCompletion?.session.id === session.id
+          ? { ...s.lastCompletion, session }
+          : s.lastCompletion,
         error: null,
       }));
-      void notifyPomodoroComplete();
-      return completion;
+      return session;
     } catch (e) {
-      set((s) => ({ error: String(e), completing: false, running: false, remaining: s.duration, startedAt: null }));
+      set({ error: String(e) });
       throw e;
     }
   },
@@ -106,3 +143,32 @@ export const usePomodoroStore = create<PomodoroStore>((set, get) => ({
     }
   },
 }));
+
+async function applyTimerSnapshot(
+  snapshot: PomodoroTimerSnapshot,
+  set: (partial: Partial<PomodoroStore> | ((state: PomodoroStore) => Partial<PomodoroStore>)) => void,
+): Promise<PomodoroCompletion | null> {
+  const completion = snapshot.completion
+    ? {
+        session: snapshot.completion.session,
+        completedAt: snapshot.completion.completed_at,
+        duration: snapshot.completion.duration,
+      }
+    : null;
+
+  set((state) => ({
+    duration: snapshot.timer.duration,
+    remaining: snapshot.timer.remaining,
+    running: snapshot.timer.running,
+    completing: false,
+    startedAt: snapshot.timer.started_at ?? null,
+    sessions: completion ? [completion.session, ...state.sessions].slice(0, 10) : state.sessions,
+    lastCompletion: completion ?? state.lastCompletion,
+    error: null,
+  }));
+
+  if (completion) {
+    await notifyPomodoroComplete();
+  }
+  return completion;
+}

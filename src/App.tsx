@@ -9,17 +9,28 @@ import { PomodoroPage } from './pages/PomodoroPage';
 import { CockpitPage } from './pages/CockpitPage';
 import { useUpdateStore } from './stores/updateStore';
 import { useTaskStore } from './stores/taskStore';
+import { usePomodoroStore } from './stores/pomodoroStore';
 import { listenForTasksChanged } from './services/appEvents';
 
 export default function App() {
   const checkForUpdates = useUpdateStore((state) => state.check);
   const fetchTasks = useTaskStore((state) => state.fetchTasks);
+  const refreshPomodoroTimer = usePomodoroStore((state) => state.refreshTimer);
+  const tickPomodoroTimer = usePomodoroStore((state) => state.tick);
   const isCockpit = typeof window !== 'undefined'
     && (window.location.search.includes('window=cockpit') || window.location.pathname === '/cockpit');
 
   useEffect(() => {
     if (!isCockpit) void checkForUpdates('startup');
   }, [checkForUpdates, isCockpit]);
+
+  useEffect(() => {
+    void refreshPomodoroTimer();
+    const timer = window.setInterval(() => {
+      void tickPomodoroTimer();
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [refreshPomodoroTimer, tickPomodoroTimer]);
 
   useEffect(() => {
     let cleanup: (() => void) | null = null;

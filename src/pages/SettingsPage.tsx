@@ -51,7 +51,7 @@ export function SettingsPage() {
 
   const updatePomodoroMinutes = async (minutes: number) => {
     await updateSettings({ pomodoro_minutes: minutes });
-    setDurationMinutes(minutes);
+    await setDurationMinutes(minutes);
   };
 
   const updateCockpitOpacity = async (opacity: number) => {
