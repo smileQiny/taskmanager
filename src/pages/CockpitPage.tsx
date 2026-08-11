@@ -35,6 +35,8 @@ export function CockpitPage() {
     reset,
     tick,
     complete,
+    lastCompletion,
+    clearLastCompletion,
     setDurationMinutes,
   } = usePomodoroStore();
   const {
@@ -109,6 +111,15 @@ export function CockpitPage() {
     return () => window.clearInterval(timer);
   }, [running, tick]);
 
+  useEffect(() => {
+    if (!lastCompletion) return;
+    const trimmed = pomodoroTitle.trim();
+    clearLastCompletion(lastCompletion.session.id);
+    if (!trimmed) return;
+    void createTask(buildPomodoroTaskRecord(trimmed, lastCompletion.completedAt, lastCompletion.duration))
+      .then(() => setPomodoroTitle(''));
+  }, [clearLastCompletion, createTask, lastCompletion, pomodoroTitle]);
+
   const grouped = useMemo(() => groupTasksForToday(tasks), [tasks]);
   const cockpitTasks = useMemo(
     () => [...grouped.overdue, ...grouped.today, ...grouped.unscheduled].slice(0, 5),
@@ -148,12 +159,7 @@ export function CockpitPage() {
   };
 
   const completePomodoro = async () => {
-    const trimmed = pomodoroTitle.trim();
-    const completedAt = dayjs().unix();
     await complete();
-    if (!trimmed) return;
-    await createTask(buildPomodoroTaskRecord(trimmed, completedAt, duration));
-    setPomodoroTitle('');
   };
 
   const goPreviousPage = () => {
