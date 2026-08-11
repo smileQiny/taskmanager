@@ -2,8 +2,8 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import { TopBar } from '../components/layout/TopBar';
 import { usePomodoroStore } from '../stores/pomodoroStore';
-import { useSettingsStore } from '../stores/settingsStore';
 import { useTaskStore } from '../stores/taskStore';
+import { PomodoroSession } from '../types/task';
 import { buildPomodoroTaskRecord } from '../utils/cockpitTaskRecords';
 
 export function PomodoroPage() {
@@ -18,33 +18,28 @@ export function PomodoroPage() {
     start,
     pause,
     reset,
-    tick,
     complete,
+    updateSessionRecord,
     clearLastCompletion,
     fetchSessions,
   } = usePomodoroStore();
-  const { settings, fetchSettings } = useSettingsStore();
-  const { createTask } = useTaskStore();
+  const { createTask, updateTask } = useTaskStore();
   const [recordTitle, setRecordTitle] = useState('');
   const [isRecordDialogOpen, setIsRecordDialogOpen] = useState(false);
-  const [lastCompletedAt, setLastCompletedAt] = useState<number | null>(null);
-  const [lastDuration, setLastDuration] = useState(duration);
+  const [editingSession, setEditingSession] = useState<PomodoroSession | null>(null);
+  const [durationInput, setDurationInput] = useState(String(Math.round(duration / 60)));
 
   useEffect(() => {
-    void fetchSettings();
     void fetchSessions();
-  }, [fetchSettings, fetchSessions]);
+  }, [fetchSessions]);
 
   useEffect(() => {
-    const settingsDuration = settings.pomodoro_minutes * 60;
-    if (running || duration === settingsDuration) return;
-    setDurationMinutes(settings.pomodoro_minutes);
-  }, [duration, running, settings.pomodoro_minutes, setDurationMinutes]);
+    setDurationInput(String(Math.round(duration / 60)));
+  }, [duration]);
 
-  const openRecordDialog = useCallback((completedAt: number, completedDuration: number) => {
-    setLastCompletedAt(completedAt);
-    setLastDuration(completedDuration);
-    setRecordTitle('');
+  const openRecordDialog = useCallback((session: PomodoroSession) => {
+    setEditingSession(session);
+    setRecordTitle(session.note ?? '');
     setIsRecordDialogOpen(true);
   }, []);
 
@@ -53,14 +48,8 @@ export function PomodoroPage() {
   }, [complete]);
 
   useEffect(() => {
-    if (!running) return;
-    const id = window.setInterval(tick, 1000);
-    return () => window.clearInterval(id);
-  }, [running, tick]);
-
-  useEffect(() => {
     if (!lastCompletion) return;
-    openRecordDialog(lastCompletion.completedAt, lastCompletion.duration);
+    openRecordDialog(lastCompletion.session);
     clearLastCompletion(lastCompletion.session.id);
   }, [clearLastCompletion, lastCompletion, openRecordDialog]);
 
@@ -69,13 +58,64 @@ export function PomodoroPage() {
   const closeRecordDialog = () => {
     setIsRecordDialogOpen(false);
     setRecordTitle('');
+    setEditingSession(null);
+  };
+
+  const submitDuration = async (event: FormEvent) => {
+    event.preventDefault();
+    await applyDurationInput();
+  };
+
+  const adjustDuration = (delta: number) => {
+    if (running) return;
+    const next = normalizeDurationMinutes(Number(durationInput), Math.round(duration / 60)) + delta;
+    const clamped = normalizeDurationMinutes(next, Math.round(duration / 60));
+    setDurationInput(String(clamped));
+    void setDurationMinutes(clamped);
+  };
+
+  const applyDurationInput = async () => {
+    if (running) {
+      setDurationInput(String(Math.round(duration / 60)));
+      return;
+    }
+    const next = normalizeDurationMinutes(Number(durationInput), Math.round(duration / 60));
+    setDurationInput(String(next));
+    void setDurationMinutes(next);
   };
 
   const submitPomodoroRecord = async (event: FormEvent) => {
     event.preventDefault();
     const title = recordTitle.trim();
-    if (title && lastCompletedAt !== null) {
-      await createTask(buildPomodoroTaskRecord(title, lastCompletedAt, lastDuration, 'pomodoro'));
+    if (title && editingSession) {
+      const completedAt = editingSession.started_at + editingSession.duration;
+      const taskRecord = buildPomodoroTaskRecord(title, completedAt, editingSession.duration, 'pomodoro');
+      let taskId = editingSession.task_id ?? null;
+      if (taskId) {
+        const updated = await updateTask({
+          id: taskId,
+          title: taskRecord.title,
+          description: taskRecord.description ?? null,
+          status: 'done',
+          priority: 'medium',
+          start_time: taskRecord.start_time ?? null,
+          end_time: taskRecord.end_time ?? null,
+          all_day: false,
+          tags: taskRecord.tags ?? null,
+        });
+        if (!updated) {
+          const created = await createTask(taskRecord);
+          taskId = created.id;
+        }
+      } else {
+        const created = await createTask(taskRecord);
+        taskId = created.id;
+      }
+      await updateSessionRecord({
+        id: editingSession.id,
+        note: title,
+        task_id: taskId,
+      });
     }
     closeRecordDialog();
   };
@@ -92,14 +132,70 @@ export function PomodoroPage() {
                 <span className="text-5xl font-semibold tabular-nums text-slate-900">{formatRemaining(remaining)}</span>
               </div>
             </div>
+            <form className="mx-auto mt-6 flex w-full max-w-xs items-center justify-center gap-2" onSubmit={submitDuration}>
+              <button
+                aria-label="减少专注分钟"
+                className="btn btn-sm h-10 min-h-10 w-10 rounded-xl border-slate-200 bg-white/90 p-0 text-lg text-slate-600"
+                disabled={running}
+                onClick={() => adjustDuration(-5)}
+                type="button"
+              >
+                -
+              </button>
+              <label className="relative min-w-0 flex-1">
+                <input
+                  aria-label="专注分钟"
+                  className="input input-bordered h-10 w-full border-[#cbd8e8] bg-white/90 pr-14 text-center text-base font-semibold tabular-nums text-slate-900"
+                  max={120}
+                  min={5}
+                  step={1}
+                  type="number"
+                  value={durationInput}
+                  disabled={running}
+                  onBlur={() => void applyDurationInput()}
+                  onChange={(event) => setDurationInput(event.target.value)}
+                />
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                  min
+                </span>
+              </label>
+              <button
+                aria-label="增加专注分钟"
+                className="btn btn-sm h-10 min-h-10 w-10 rounded-xl border-slate-200 bg-white/90 p-0 text-lg text-slate-600"
+                disabled={running}
+                onClick={() => adjustDuration(5)}
+                type="button"
+              >
+                +
+              </button>
+            </form>
+            <div className="mx-auto mt-2 grid max-w-xs grid-cols-4 gap-1 rounded-xl border border-[#dbe5f1] bg-white/70 p-1">
+              {[15, 25, 45, 60].map((minutes) => (
+                <button
+                  key={minutes}
+                  className={`h-8 rounded-lg px-3 text-xs font-semibold transition ${
+                    Math.round(duration / 60) === minutes
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : running
+                        ? 'cursor-not-allowed text-slate-300'
+                        : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                  disabled={running}
+                  onClick={() => void setDurationMinutes(minutes)}
+                  type="button"
+                >
+                  {minutes}
+                </button>
+              ))}
+            </div>
             {error && <div className="mt-5 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</div>}
             <div className="mt-8 flex justify-center gap-2">
               {running ? (
-                <button className="btn btn-primary" onClick={pause}>暂停</button>
+                <button className="btn btn-primary" onClick={() => void pause()}>暂停</button>
               ) : (
-                <button className="btn btn-primary" onClick={start}>开始</button>
+                <button className="btn btn-primary" onClick={() => void start()}>开始</button>
               )}
-              <button className="btn" onClick={reset}>重置</button>
+              <button className="btn" onClick={() => void reset()}>重置</button>
               <button className="btn btn-ghost" onClick={() => void completeAndAskRecord()}>完成并记录</button>
             </div>
           </div>
@@ -112,10 +208,25 @@ export function PomodoroPage() {
               <p className="text-sm text-slate-400">暂无完成记录</p>
             ) : (
               sessions.map((session) => (
-                <div key={session.id} className="rounded-lg bg-slate-50/90 px-3 py-2">
-                  <p className="text-sm font-medium text-slate-800">{Math.round(session.duration / 60)} 分钟</p>
-                  <p className="text-xs text-slate-500">{dayjs.unix(session.started_at).format('M月D日 HH:mm')}</p>
-                </div>
+                <button
+                  key={session.id}
+                  className="w-full rounded-lg bg-slate-50/90 px-3 py-2 text-left transition hover:bg-white hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  onClick={() => openRecordDialog(session)}
+                  type="button"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800">{Math.round(session.duration / 60)} 分钟</p>
+                      <p className="text-xs text-slate-500">{dayjs.unix(session.started_at).format('M月D日 HH:mm')}</p>
+                    </div>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-blue-600 ring-1 ring-blue-100">
+                      编辑
+                    </span>
+                  </div>
+                  <p className={`mt-2 line-clamp-2 text-xs ${session.note ? 'text-slate-700' : 'text-slate-400'}`}>
+                    {session.note || '未记录本轮完成内容'}
+                  </p>
+                </button>
               ))
             )}
           </div>
@@ -124,6 +235,7 @@ export function PomodoroPage() {
       {isRecordDialogOpen && (
         <PomodoroRecordDialog
           title={recordTitle}
+          session={editingSession}
           onChangeTitle={setRecordTitle}
           onClose={closeRecordDialog}
           onSubmit={submitPomodoroRecord}
@@ -134,11 +246,13 @@ export function PomodoroPage() {
 }
 
 function PomodoroRecordDialog({
+  session,
   title,
   onChangeTitle,
   onClose,
   onSubmit,
 }: {
+  session: PomodoroSession | null;
   title: string;
   onChangeTitle: (title: string) => void;
   onClose: () => void;
@@ -149,8 +263,10 @@ function PomodoroRecordDialog({
       <form className="w-full max-w-md rounded-2xl border border-[#dbe5f1] bg-white p-5 shadow-[0_24px_70px_rgba(30,41,59,0.18)]" onSubmit={onSubmit}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">记录本轮番茄任务</h2>
-            <p className="mt-1 text-sm text-slate-500">不填写也可以跳过，只保留番茄钟记录。</p>
+            <h2 className="text-base font-semibold text-slate-900">编辑番茄记录</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {session ? `${dayjs.unix(session.started_at).format('M月D日 HH:mm')} · ${Math.round(session.duration / 60)} 分钟` : '补写本轮完成内容'}
+            </p>
           </div>
           <button className="btn btn-ghost btn-sm h-8 min-h-8 w-8 rounded-full p-0 text-slate-400 hover:bg-slate-100 hover:text-slate-700" onClick={onClose} type="button">
             ×
@@ -180,4 +296,9 @@ function formatRemaining(seconds: number): string {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
   const secs = (seconds % 60).toString().padStart(2, '0');
   return `${minutes}:${secs}`;
+}
+
+function normalizeDurationMinutes(value: number, fallback: number): number {
+  const minutes = Number.isFinite(value) ? value : fallback;
+  return Math.min(120, Math.max(5, Math.round(minutes)));
 }

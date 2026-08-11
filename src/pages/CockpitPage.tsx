@@ -33,11 +33,11 @@ export function CockpitPage() {
     start,
     pause,
     reset,
-    tick,
     complete,
     lastCompletion,
     clearLastCompletion,
     setDurationMinutes,
+    updateSessionRecord,
   } = usePomodoroStore();
   const {
     settings,
@@ -106,19 +106,18 @@ export function CockpitPage() {
   }, []);
 
   useEffect(() => {
-    if (!running) return;
-    const timer = window.setInterval(tick, 1000);
-    return () => window.clearInterval(timer);
-  }, [running, tick]);
-
-  useEffect(() => {
     if (!lastCompletion) return;
     const trimmed = pomodoroTitle.trim();
     clearLastCompletion(lastCompletion.session.id);
     if (!trimmed) return;
     void createTask(buildPomodoroTaskRecord(trimmed, lastCompletion.completedAt, lastCompletion.duration))
+      .then((task) => updateSessionRecord({
+        id: lastCompletion.session.id,
+        note: trimmed,
+        task_id: task.id,
+      }))
       .then(() => setPomodoroTitle(''));
-  }, [clearLastCompletion, createTask, lastCompletion, pomodoroTitle]);
+  }, [clearLastCompletion, createTask, lastCompletion, pomodoroTitle, updateSessionRecord]);
 
   const grouped = useMemo(() => groupTasksForToday(tasks), [tasks]);
   const cockpitTasks = useMemo(
@@ -290,10 +289,10 @@ export function CockpitPage() {
               running={running}
               onPomodoroTitleChange={setPomodoroTitle}
               onComplete={() => void completePomodoro()}
-              onPause={pause}
-              onReset={reset}
-              onSetDurationMinutes={setDurationMinutes}
-              onStart={start}
+              onPause={() => void pause()}
+              onReset={() => void reset()}
+              onSetDurationMinutes={(minutes) => void setDurationMinutes(minutes)}
+              onStart={() => void start()}
             />
           )}
           {pageIndex === 2 && (
@@ -470,8 +469,9 @@ function PomodoroCockpitPage({
               {[15, 25, 45].map((minutes) => (
                 <button
                   key={minutes}
-                  className={`rounded-md border px-2 py-1 text-[11px] font-semibold transition ${Math.round(duration / 60) === minutes ? 'border-sky-200/35 bg-sky-200/18 text-sky-50' : 'border-white/8 bg-white/7 text-slate-300 hover:bg-white/12'}`}
+                  className={`rounded-md border px-2 py-1 text-[11px] font-semibold transition ${Math.round(duration / 60) === minutes ? 'border-sky-200/35 bg-sky-200/18 text-sky-50' : running ? 'cursor-not-allowed border-white/6 bg-white/4 text-slate-500' : 'border-white/8 bg-white/7 text-slate-300 hover:bg-white/12'}`}
                   data-no-window-drag
+                  disabled={running}
                   onClick={() => onSetDurationMinutes(minutes)}
                   type="button"
                 >

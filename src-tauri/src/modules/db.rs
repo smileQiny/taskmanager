@@ -55,7 +55,17 @@ fn migrate(conn: &Connection) -> Result<()> {
             id         TEXT PRIMARY KEY,
             started_at INTEGER NOT NULL,
             duration   INTEGER NOT NULL DEFAULT 1500,
-            completed  INTEGER NOT NULL DEFAULT 0
+            completed  INTEGER NOT NULL DEFAULT 0,
+            note       TEXT,
+            task_id    TEXT
+        );
+        CREATE TABLE IF NOT EXISTS pomodoro_timer_state (
+            id         INTEGER PRIMARY KEY CHECK (id = 1),
+            duration   INTEGER NOT NULL DEFAULT 1500,
+            remaining  INTEGER NOT NULL DEFAULT 1500,
+            running    INTEGER NOT NULL DEFAULT 0,
+            started_at INTEGER,
+            updated_at INTEGER NOT NULL
         );
         CREATE TABLE IF NOT EXISTS app_settings (
             key        TEXT PRIMARY KEY,
@@ -64,6 +74,8 @@ fn migrate(conn: &Connection) -> Result<()> {
     )?;
     add_column_if_missing(conn, "sync_accounts", "enabled", "INTEGER NOT NULL DEFAULT 0")?;
     add_column_if_missing(conn, "sync_accounts", "status", "TEXT NOT NULL DEFAULT 'not_configured'")?;
+    add_column_if_missing(conn, "pomodoro_sessions", "note", "TEXT")?;
+    add_column_if_missing(conn, "pomodoro_sessions", "task_id", "TEXT")?;
     Ok(())
 }
 

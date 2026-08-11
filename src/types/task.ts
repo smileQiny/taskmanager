@@ -65,6 +65,27 @@ export interface PomodoroSession {
   started_at: number;
   duration: number;
   completed: boolean;
+  note?: string | null;
+  task_id?: string | null;
+}
+
+export interface PomodoroTimerState {
+  duration: number;
+  remaining: number;
+  running: boolean;
+  started_at?: number | null;
+  updated_at: number;
+}
+
+export interface PomodoroTimerCompletion {
+  session: PomodoroSession;
+  completed_at: number;
+  duration: number;
+}
+
+export interface PomodoroTimerSnapshot {
+  timer: PomodoroTimerState;
+  completion?: PomodoroTimerCompletion | null;
 }
 
 export type SyncProvider = 'feishu' | 'macos' | 'wecom' | 'google';
