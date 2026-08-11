@@ -80,11 +80,11 @@ $env:TASKMANAGER_VERSION = "v0.2.1"; irm https://raw.githubusercontent.com/smile
 $env:TASKMANAGER_DOWNLOAD_DIR = "$env:USERPROFILE\Downloads"; irm https://raw.githubusercontent.com/smileQiny/taskmanager/main/scripts/install.ps1 | iex
 ```
 
-The macOS/Linux script installs the matching DMG or Linux package for the current machine. On Linux it prefers AppImage, then deb, then rpm. The Windows script downloads and runs the NSIS `.exe` installer.
+The macOS/Linux script installs the matching DMG or Linux package for the current machine. On macOS it also clears the quarantine flag after copying the app, which avoids the "app is damaged" Gatekeeper prompt that can appear after browser downloads of unsigned builds. On Linux it prefers AppImage, then deb, then rpm. The Windows script downloads and runs the NSIS `.exe` installer.
 
 ## Signed App Updates
 
-The app uses Tauri's signed updater for in-app updates. GitHub Releases remain the distribution channel: first-time installs use the scripts above, and running apps check `latest.json` from the latest Release.
+The app uses Tauri's signed updater for in-app updates. GitHub Releases remain the distribution channel: first-time installs use the scripts above, and running apps check `latest.json` from the latest Release. Manual macOS DMG installs are still not Apple-notarized; use the one-line install script or configure Apple Developer ID signing and notarization for click-to-open DMG distribution.
 
 Required GitHub Actions secret:
 

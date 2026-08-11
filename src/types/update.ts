@@ -20,6 +20,7 @@ export interface AppUpdateInfo {
 export interface InstallUpdateResult {
   action: string;
   message: string;
+  manualCommand?: string;
 }
 
 export type UpdateCheckSource = 'startup' | 'manual';
