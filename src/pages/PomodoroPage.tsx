@@ -13,12 +13,14 @@ export function PomodoroPage() {
     running,
     sessions,
     error,
+    lastCompletion,
     setDurationMinutes,
     start,
     pause,
     reset,
     tick,
     complete,
+    clearLastCompletion,
     fetchSessions,
   } = usePomodoroStore();
   const { settings, fetchSettings } = useSettingsStore();
@@ -34,8 +36,10 @@ export function PomodoroPage() {
   }, [fetchSettings, fetchSessions]);
 
   useEffect(() => {
+    const settingsDuration = settings.pomodoro_minutes * 60;
+    if (running || duration === settingsDuration) return;
     setDurationMinutes(settings.pomodoro_minutes);
-  }, [settings.pomodoro_minutes, setDurationMinutes]);
+  }, [duration, running, settings.pomodoro_minutes, setDurationMinutes]);
 
   const openRecordDialog = useCallback((completedAt: number, completedDuration: number) => {
     setLastCompletedAt(completedAt);
@@ -45,23 +49,20 @@ export function PomodoroPage() {
   }, []);
 
   const completeAndAskRecord = useCallback(async () => {
-    const completedAt = dayjs().unix();
-    const completedDuration = duration;
     await complete();
-    openRecordDialog(completedAt, completedDuration);
-  }, [complete, duration, openRecordDialog]);
+  }, [complete]);
 
   useEffect(() => {
     if (!running) return;
-    const id = window.setInterval(() => {
-      if (remaining <= 1) {
-        void completeAndAskRecord();
-        return;
-      }
-      tick();
-    }, 1000);
+    const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, [completeAndAskRecord, remaining, running, tick]);
+  }, [running, tick]);
+
+  useEffect(() => {
+    if (!lastCompletion) return;
+    openRecordDialog(lastCompletion.completedAt, lastCompletion.duration);
+    clearLastCompletion(lastCompletion.session.id);
+  }, [clearLastCompletion, lastCompletion, openRecordDialog]);
 
   const progress = Math.round(((duration - remaining) / duration) * 100);
 
