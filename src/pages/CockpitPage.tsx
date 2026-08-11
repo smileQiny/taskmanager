@@ -90,7 +90,9 @@ export function CockpitPage() {
     void (async () => {
       try {
         const { getCurrentWindow } = await import('@tauri-apps/api/window');
-        const alwaysOnTop = await getCurrentWindow().isAlwaysOnTop();
+        const currentWindow = getCurrentWindow();
+        await currentWindow.setShadow(false);
+        const alwaysOnTop = await currentWindow.isAlwaysOnTop();
         if (!cancelled) setIsPinned(alwaysOnTop);
       } catch {
         // Browser preview has no native window state to read.
@@ -197,26 +199,26 @@ export function CockpitPage() {
   };
 
   return (
-    <main className="h-screen overflow-hidden bg-transparent p-2 text-zinc-100">
+    <main className="h-screen overflow-hidden bg-transparent text-slate-100">
       <section
-        className="relative flex h-full cursor-move flex-col overflow-hidden rounded-[18px] border border-white/10 shadow-[0_18px_42px_rgba(0,0,0,0.34)] transition-colors duration-200"
+        className="relative flex h-full cursor-move flex-col overflow-hidden rounded-[18px] border border-white/[0.08] transition-colors duration-200"
         style={{ backgroundColor: transparency.shellBackground }}
         data-tauri-drag-region
         onMouseDown={(event) => void startDragging(event)}
       >
         <div className="pointer-events-none absolute inset-0" style={{ background: transparency.glowBackground }} />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/28" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/[0.16]" />
 
         <header
           className="relative flex h-8 shrink-0 select-none items-center justify-between px-2.5"
           style={{ backgroundColor: transparency.headerBackground }}
           data-tauri-drag-region
         >
-          <div className="z-10 grid h-5 w-5 place-items-center rounded-full border border-white/15 bg-white/10 text-[11px] font-black text-white shadow-sm">
+          <div className="z-10 grid h-5 w-5 place-items-center rounded-full border border-white/[0.16] bg-white/[0.08] text-[10px] font-bold text-slate-50">
             ✓
           </div>
           <div className="pointer-events-none absolute inset-x-16 top-0 flex h-8 items-center justify-center">
-            <p className="truncate text-[12px] font-bold text-zinc-50">今日驾驶舱</p>
+            <p className="truncate text-[13px] font-semibold leading-none text-slate-50">今日驾驶舱</p>
           </div>
           <div className="z-20 flex items-center gap-1">
             <IconButton
@@ -235,7 +237,7 @@ export function CockpitPage() {
 
         <div className="relative flex h-8 shrink-0 items-center gap-1.5 px-2 pt-1.5">
           <button
-            className="h-6 rounded-md border border-white/10 bg-black/22 px-2 text-[10px] font-bold text-zinc-50 shadow-sm transition hover:bg-black/34"
+            className="h-6 rounded-md border border-white/[0.08] bg-white/[0.06] px-2 text-[11px] font-semibold text-slate-100 transition hover:bg-white/[0.1]"
             data-no-window-drag
             onClick={() => setPageIndex((current) => (current + 1) % pageCount)}
             title="切换页面"
@@ -246,18 +248,18 @@ export function CockpitPage() {
           <IconButton label="上一页" onClick={goPreviousPage} title="上一页">
             &lt;
           </IconButton>
-          <span className="min-w-10 text-center text-[11px] font-black tabular-nums text-zinc-100">
+          <span className="min-w-10 text-center text-[12px] font-semibold tabular-nums text-slate-50">
             {pageIndex + 1} / {pageCount}
           </span>
           <IconButton label="下一页" onClick={goNextPage} title="下一页">
             &gt;
           </IconButton>
-          <span className="ml-auto rounded-md bg-black/30 px-2 py-1 text-[10px] font-black text-zinc-50">
+          <span className="ml-auto rounded-md bg-white/[0.07] px-2 py-1 text-[11px] font-semibold text-slate-50">
             当前
           </span>
         </div>
 
-        <div className="relative flex min-h-0 flex-1 flex-col px-2 pb-2 pt-1.5">
+        <div className="relative flex min-h-0 flex-1 flex-col px-1.5 pb-1 pt-1.5">
           {pageIndex === 0 && (
             <TaskCockpitPage
               activeCount={activeCount}
@@ -331,16 +333,16 @@ function TaskCockpitPage({
 }) {
   return (
     <>
-      <div className="mb-1.5 flex h-8 items-center justify-between border-b border-white/8 px-1">
+      <div className="mb-1.5 flex h-8 items-center justify-between border-b border-white/[0.045] px-1">
         <div className="min-w-0">
-          <p className="truncate text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400">
+          <p className="truncate text-[11px] font-medium uppercase text-slate-300">
             {dayjs().format('YYYY.MM.DD')}
           </p>
-          <p className="truncate text-[15px] font-black leading-none text-zinc-50">{activeCount} 个待处理</p>
+          <p className="truncate text-[17px] font-semibold leading-none text-slate-50">{activeCount} 个待处理</p>
         </div>
         <div className="text-right">
-          <p className="text-[9px] font-black uppercase tracking-[0.14em] text-zinc-500">DONE</p>
-          <p className="text-[14px] font-black tabular-nums text-sky-100">{doneToday}</p>
+          <p className="text-[10px] font-medium uppercase text-slate-400">DONE</p>
+          <p className="text-[16px] font-semibold leading-none tabular-nums text-sky-100">{doneToday}</p>
         </div>
       </div>
 
@@ -350,16 +352,34 @@ function TaskCockpitPage({
         </div>
       )}
 
-      <section className="min-h-0 flex-1 overflow-hidden rounded-xl border border-white/8 bg-black/55 shadow-inner">
-        <div className="flex h-6 items-center justify-between border-b border-white/7 px-2">
-          <p className="text-[10px] font-black text-zinc-100">任务队列</p>
-          <span className="rounded-md bg-white/10 px-1.5 py-0.5 text-[9px] font-black text-zinc-200">
+      <form className="mb-1.5 flex h-8 shrink-0 items-center gap-1.5 px-0.5" onSubmit={onSubmitTask}>
+        <input
+          className="h-8 min-w-0 flex-1 rounded-[10px] border border-white/[0.07] bg-white/[0.055] px-2.5 text-[12px] font-medium text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-200/[0.2] focus:bg-white/[0.085]"
+          data-no-window-drag
+          placeholder="快速添加任务"
+          value={title}
+          onChange={(event) => onTitleChange(event.target.value)}
+        />
+        <button
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] border border-white/[0.1] bg-white/[0.065] text-[17px] font-semibold leading-none text-slate-50 transition hover:border-sky-200/[0.22] hover:bg-sky-300/[0.14]"
+          data-no-window-drag
+          title="添加任务"
+          type="submit"
+        >
+          +
+        </button>
+      </form>
+
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-white/[0.065] bg-[#171d21]/60">
+        <div className="flex h-6 items-center justify-between border-b border-white/[0.045] px-2">
+          <p className="text-[11px] font-semibold text-slate-100">任务队列</p>
+          <span className="rounded-md bg-white/[0.08] px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
             {tasks.length} / 5
           </span>
         </div>
-        <div className="h-[calc(100%-1.5rem)] overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {tasks.length === 0 ? (
-            <div className="flex h-full items-center justify-center px-4 text-center text-[11px] font-semibold text-zinc-500">
+            <div className="flex h-full items-center justify-center px-4 text-center text-[12px] font-medium text-slate-400">
               暂无今日任务
             </div>
           ) : (
@@ -375,23 +395,6 @@ function TaskCockpitPage({
           )}
         </div>
       </section>
-
-      <form className="mt-2 flex h-8 gap-1.5" onSubmit={onSubmitTask}>
-        <input
-          className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/65 px-2 text-[11px] font-semibold text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-sky-200/30 focus:bg-black/75"
-          data-no-window-drag
-          placeholder="快速添加任务"
-          value={title}
-          onChange={(event) => onTitleChange(event.target.value)}
-        />
-        <button
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-sky-200/18 bg-sky-300/16 text-lg font-black leading-none text-sky-50 transition hover:bg-sky-300/24"
-          data-no-window-drag
-          title="添加任务"
-        >
-          +
-        </button>
-      </form>
     </>
   );
 }
@@ -426,10 +429,10 @@ function PomodoroCockpitPage({
       <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-white/8 bg-black/18 px-3 py-3 shadow-inner">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">FOCUS</p>
-            <p className="mt-1 text-[13px] font-black text-zinc-50">番茄时钟</p>
+            <p className="text-[11px] font-medium uppercase text-slate-400">FOCUS</p>
+            <p className="mt-1 text-[14px] font-semibold text-slate-50">番茄时钟</p>
           </div>
-          <span className="rounded-md bg-white/10 px-2 py-1 text-[10px] font-black tabular-nums text-sky-100">
+          <span className="rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold tabular-nums text-sky-100">
             {Math.round(duration / 60)} min
           </span>
         </div>
@@ -441,7 +444,7 @@ function PomodoroCockpitPage({
               background: `conic-gradient(#d7ecff ${progress * 3.6}deg, rgba(255,255,255,0.08) 0deg)`,
             }}
           >
-            <div className="grid h-[72px] w-[72px] place-items-center rounded-full bg-[#11171a]/90 text-[17px] font-black tabular-nums text-zinc-50 shadow-inner">
+            <div className="grid h-[72px] w-[72px] place-items-center rounded-full bg-[#11171a]/90 text-[18px] font-semibold tabular-nums text-slate-50 shadow-inner">
               {formatRemaining(remaining)}
             </div>
           </div>
@@ -449,9 +452,9 @@ function PomodoroCockpitPage({
             <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
               <div className="h-full rounded-full bg-sky-100 transition-all" style={{ width: `${progress}%` }} />
             </div>
-            <p className="mt-2 text-[10px] font-semibold text-zinc-500">本轮进度 {progress}%</p>
+            <p className="mt-2 text-[11px] font-medium text-slate-400">本轮进度 {progress}%</p>
             <input
-              className="mt-2 h-7 w-full rounded-lg border border-white/10 bg-black/55 px-2 text-[10px] font-semibold text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-sky-200/30 focus:bg-black/70"
+              className="mt-2 h-7 w-full rounded-lg border border-white/10 bg-black/55 px-2 text-[11px] font-medium text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-200/30 focus:bg-black/70"
               data-no-window-drag
               placeholder="本轮完成了什么"
               value={pomodoroTitle}
@@ -461,7 +464,7 @@ function PomodoroCockpitPage({
               {[15, 25, 45].map((minutes) => (
                 <button
                   key={minutes}
-                  className={`rounded-md border px-2 py-1 text-[10px] font-black transition ${Math.round(duration / 60) === minutes ? 'border-sky-200/35 bg-sky-200/18 text-sky-50' : 'border-white/8 bg-white/7 text-zinc-300 hover:bg-white/12'}`}
+                  className={`rounded-md border px-2 py-1 text-[11px] font-semibold transition ${Math.round(duration / 60) === minutes ? 'border-sky-200/35 bg-sky-200/18 text-sky-50' : 'border-white/8 bg-white/7 text-slate-300 hover:bg-white/12'}`}
                   data-no-window-drag
                   onClick={() => onSetDurationMinutes(minutes)}
                   type="button"
@@ -476,7 +479,7 @@ function PomodoroCockpitPage({
 
       <div className="mt-2 grid h-8 grid-cols-[1fr_58px_58px] gap-1.5">
         <button
-          className="rounded-lg border border-white/10 bg-zinc-50 text-[12px] font-black text-zinc-950 transition hover:bg-white"
+          className="rounded-lg border border-white/10 bg-zinc-50 text-[13px] font-semibold text-zinc-950 transition hover:bg-white"
           data-no-window-drag
           onClick={running ? onPause : onStart}
           type="button"
@@ -484,7 +487,7 @@ function PomodoroCockpitPage({
           {running ? '暂停' : '开始'}
         </button>
         <button
-          className="rounded-lg border border-white/8 bg-white/8 text-[11px] font-black text-zinc-200 transition hover:bg-white/12"
+          className="rounded-lg border border-white/8 bg-white/8 text-[12px] font-semibold text-slate-200 transition hover:bg-white/12"
           data-no-window-drag
           onClick={onReset}
           type="button"
@@ -492,7 +495,7 @@ function PomodoroCockpitPage({
           重置
         </button>
         <button
-          className="rounded-lg border border-emerald-200/22 bg-emerald-300/12 text-[11px] font-black text-emerald-100 transition hover:bg-emerald-300/20"
+          className="rounded-lg border border-emerald-200/22 bg-emerald-300/12 text-[12px] font-semibold text-emerald-100 transition hover:bg-emerald-300/20"
           data-no-window-drag
           onClick={onComplete}
           type="button"
@@ -524,14 +527,14 @@ function CompletedRecordPage({
       <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-white/8 bg-black/40 px-3 py-3 shadow-inner">
         <div className="flex items-start justify-between border-b border-white/8 pb-2">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">
+            <p className="text-[11px] font-medium uppercase text-slate-400">
               LOG
             </p>
-            <p className="mt-1 truncate text-[14px] font-black text-zinc-50">快速完成记录</p>
+            <p className="mt-1 truncate text-[15px] font-semibold text-slate-50">快速完成记录</p>
           </div>
           <div className="rounded-lg border border-sky-100/14 bg-sky-100/10 px-2 py-1 text-right">
-            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-sky-100/70">DONE</p>
-            <p className="text-[15px] font-black leading-none tabular-nums text-sky-50">{doneToday}</p>
+            <p className="text-[10px] font-medium uppercase text-sky-100/75">DONE</p>
+            <p className="text-[16px] font-semibold leading-none tabular-nums text-sky-50">{doneToday}</p>
           </div>
         </div>
 
@@ -543,14 +546,14 @@ function CompletedRecordPage({
 
         <form className="mt-3 flex flex-1 flex-col" onSubmit={onSubmit}>
           <textarea
-            className="min-h-0 flex-1 resize-none rounded-xl border border-white/10 bg-black/58 px-3 py-2 text-[13px] font-bold leading-relaxed text-zinc-100 outline-none transition placeholder:text-zinc-500 focus:border-sky-200/30 focus:bg-black/72"
+            className="min-h-0 flex-1 resize-none rounded-xl border border-white/10 bg-black/58 px-3 py-2 text-[13px] font-medium leading-relaxed text-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-200/30 focus:bg-black/72"
             data-no-window-drag
             placeholder="刚完成的临时任务"
             value={title}
             onChange={(event) => onTitleChange(event.target.value)}
           />
           <button
-            className="mt-2 h-9 rounded-lg border border-sky-100/22 bg-sky-100/16 text-[12px] font-black text-sky-50 transition hover:bg-sky-100/24"
+            className="mt-2 h-9 rounded-lg border border-sky-100/22 bg-sky-100/16 text-[13px] font-semibold text-sky-50 transition hover:bg-sky-100/24"
             data-no-window-drag
             type="submit"
           >
@@ -577,10 +580,10 @@ function CockpitTaskRow({
   const isFocused = task.status === 'in_progress';
 
   return (
-    <div className={`group grid grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-white/7 px-2 py-1.5 last:border-b-0 ${isFocused ? 'bg-sky-200/8' : 'hover:bg-white/[0.04]'}`}>
+    <div className={`group grid grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-white/[0.04] px-2 py-1.5 last:border-b-0 ${isFocused ? 'bg-sky-200/[0.05]' : 'hover:bg-white/[0.025]'}`}>
       <button
         aria-label={isDone ? '标记未完成' : '完成任务'}
-        className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[10px] font-black transition ${isDone ? 'border-sky-100/40 bg-sky-100/24 text-sky-50' : 'border-white/12 bg-black/22 text-transparent hover:border-sky-100/28 hover:text-sky-100'}`}
+        className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border text-[10px] font-semibold transition ${isDone ? 'border-sky-100/30 bg-sky-100/18 text-sky-50' : 'border-white/[0.1] bg-white/[0.025] text-transparent hover:border-sky-100/24 hover:text-sky-100'}`}
         data-no-window-drag
         onClick={onComplete}
         title={isDone ? '标记未完成' : '完成任务'}
@@ -589,21 +592,21 @@ function CockpitTaskRow({
       </button>
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-1.5">
-          <p className={`truncate text-[12px] font-black leading-tight ${isDone ? 'text-zinc-500 line-through' : 'text-zinc-50'}`}>
+          <p className={`truncate text-[13px] font-semibold leading-tight ${isDone ? 'text-slate-500 line-through' : 'text-slate-50'}`}>
             {task.title}
           </p>
-          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[8px] font-black ${priorityTone[task.priority]}`}>
+          <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${priorityTone[task.priority]}`}>
             {priorityLabel(task.priority)}
           </span>
         </div>
-        <p className="mt-0.5 truncate text-[9px] font-semibold text-zinc-500">
+        <p className="mt-0.5 truncate text-[10px] font-medium text-slate-400">
           {isFocused ? '专注中 · ' : ''}{formatTaskTime(task)}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <button
           aria-label="设为专注任务"
-          className={`grid h-6 w-6 place-items-center rounded-md border text-[11px] transition ${isFocused ? 'border-sky-100/30 bg-sky-100/18 text-sky-50' : 'border-white/8 bg-white/7 text-zinc-300 hover:bg-white/12'}`}
+          className={`grid h-6 w-6 place-items-center rounded-md border text-[11px] transition ${isFocused ? 'border-sky-100/28 bg-sky-100/14 text-sky-50' : 'border-white/[0.08] bg-white/[0.045] text-slate-300 hover:bg-white/[0.08]'}`}
           data-no-window-drag
           onClick={onFocus}
           title="设为专注任务"
@@ -612,7 +615,7 @@ function CockpitTaskRow({
         </button>
         <button
           aria-label="删除任务"
-          className="grid h-6 w-6 place-items-center rounded-md border border-white/8 bg-white/7 text-[14px] leading-none text-zinc-400 transition hover:border-rose-200/24 hover:bg-rose-300/12 hover:text-rose-100"
+          className="grid h-6 w-6 place-items-center rounded-md border border-white/[0.08] bg-white/[0.045] text-[14px] leading-none text-slate-400 transition hover:border-rose-200/22 hover:bg-rose-300/10 hover:text-rose-100"
           data-no-window-drag
           onClick={onDelete}
           title="删除"
@@ -640,7 +643,7 @@ function IconButton({
   return (
     <button
       aria-label={label}
-      className={`grid h-6 w-6 place-items-center rounded-full border text-[13px] font-black leading-none shadow-sm transition ${active ? 'border-sky-100/30 bg-sky-100/18 text-sky-50' : 'border-white/10 bg-black/22 text-zinc-300 hover:bg-white/12 hover:text-white'}`}
+      className={`grid h-5 w-5 place-items-center rounded-full border text-[12px] font-semibold leading-none transition ${active ? 'border-sky-100/24 bg-sky-100/12 text-sky-50' : 'border-white/[0.08] bg-white/[0.055] text-slate-300 hover:bg-white/[0.09] hover:text-white'}`}
       data-no-window-drag
       onMouseDown={(event) => event.stopPropagation()}
       onClick={onClick}

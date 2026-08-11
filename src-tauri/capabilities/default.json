@@ -10,8 +10,11 @@
     "process:default",
     "notification:default",
     "core:window:allow-close",
+    "core:window:allow-get-all-windows",
     "core:window:allow-is-always-on-top",
     "core:window:allow-set-always-on-top",
-    "core:window:allow-start-dragging"
+    "core:window:allow-set-shadow",
+    "core:window:allow-start-dragging",
+    "core:webview:allow-create-webview-window"
   ]
 }

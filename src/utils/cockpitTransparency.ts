@@ -16,15 +16,16 @@ export function getCockpitTransparency(opacity: number): CockpitTransparency {
   const ratio = (value - minCockpitOpacity) / (maxCockpitOpacity - minCockpitOpacity);
 
   return {
-    shellBackground: rgba(33, 37, 39, lerp(0.5, 0.92, ratio)),
-    headerBackground: rgba(14, 18, 21, lerp(0.48, 0.82, ratio)),
-    panelBackground: rgba(5, 9, 12, lerp(0.62, 0.92, ratio)),
-    panelSoftBackground: rgba(18, 22, 25, lerp(0.5, 0.78, ratio)),
-    controlBackground: rgba(5, 9, 12, lerp(0.74, 0.96, ratio)),
-    progressTrack: rgba(72, 78, 82, lerp(0.42, 0.78, ratio)),
+    shellBackground: rgba(38, 44, 49, lerp(0.54, 0.88, ratio)),
+    headerBackground: rgba(25, 31, 36, lerp(0.5, 0.78, ratio)),
+    panelBackground: rgba(19, 25, 30, lerp(0.5, 0.82, ratio)),
+    panelSoftBackground: rgba(31, 37, 42, lerp(0.42, 0.68, ratio)),
+    controlBackground: rgba(22, 28, 33, lerp(0.52, 0.82, ratio)),
+    progressTrack: rgba(91, 101, 110, lerp(0.3, 0.58, ratio)),
     glowBackground: [
-      `linear-gradient(180deg, ${rgba(255, 255, 255, lerp(0.08, 0.14, ratio))}, transparent 42%)`,
-      `repeating-linear-gradient(0deg, ${rgba(255, 255, 255, lerp(0.025, 0.045, ratio))} 0px, ${rgba(255, 255, 255, lerp(0.025, 0.045, ratio))} 1px, transparent 1px, transparent 4px)`,
+      `linear-gradient(180deg, ${rgba(255, 255, 255, lerp(0.06, 0.1, ratio))}, transparent 38%)`,
+      `radial-gradient(circle at 18% 8%, ${rgba(156, 185, 205, lerp(0.08, 0.14, ratio))}, transparent 42%)`,
+      `radial-gradient(circle at 92% 94%, ${rgba(97, 119, 133, lerp(0.08, 0.13, ratio))}, transparent 46%)`,
     ].join(', '),
   };
 }

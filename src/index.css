@@ -14,6 +14,13 @@ body {
 html.cockpit-window,
 body.cockpit-window {
   background: transparent;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+}
+
+.cockpit-window * {
+  letter-spacing: 0;
 }
 
 * {
