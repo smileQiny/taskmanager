@@ -4,7 +4,7 @@ use std::path::Path;
 
 pub fn init(db_path: &Path) -> Result<Connection> {
     let conn = Connection::open(db_path)?;
-    conn.execute_batch("PRAGMA journal_mode=WAL;")?;
+    prepare_connection(&conn)?;
     migrate(&conn)?;
     Ok(conn)
 }
@@ -12,8 +12,16 @@ pub fn init(db_path: &Path) -> Result<Connection> {
 #[cfg(test)]
 pub fn init_in_memory() -> Result<Connection> {
     let conn = Connection::open_in_memory()?;
+    prepare_connection(&conn)?;
     migrate(&conn)?;
     Ok(conn)
+}
+
+fn prepare_connection(conn: &Connection) -> Result<()> {
+    // Foreign keys are per connection and are not stored in the database file.
+    // Enable them explicitly so ON DELETE CASCADE does not depend on how SQLite was compiled.
+    conn.execute_batch("PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL;")?;
+    Ok(())
 }
 
 fn migrate(conn: &Connection) -> Result<()> {
@@ -70,16 +78,37 @@ fn migrate(conn: &Connection) -> Result<()> {
         CREATE TABLE IF NOT EXISTS app_settings (
             key        TEXT PRIMARY KEY,
             value      TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS oauth_secrets (
+            id         TEXT PRIMARY KEY,
+            nonce      BLOB NOT NULL,
+            ciphertext BLOB NOT NULL
         );"
     )?;
-    add_column_if_missing(conn, "sync_accounts", "enabled", "INTEGER NOT NULL DEFAULT 0")?;
-    add_column_if_missing(conn, "sync_accounts", "status", "TEXT NOT NULL DEFAULT 'not_configured'")?;
+    add_column_if_missing(
+        conn,
+        "sync_accounts",
+        "enabled",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    add_column_if_missing(
+        conn,
+        "sync_accounts",
+        "status",
+        "TEXT NOT NULL DEFAULT 'not_configured'",
+    )?;
     add_column_if_missing(conn, "pomodoro_sessions", "note", "TEXT")?;
     add_column_if_missing(conn, "pomodoro_sessions", "task_id", "TEXT")?;
+    add_column_if_missing(conn, "sync_accounts", "last_error", "TEXT")?;
     Ok(())
 }
 
-fn add_column_if_missing(conn: &Connection, table: &str, column: &str, definition: &str) -> Result<()> {
+fn add_column_if_missing(
+    conn: &Connection,
+    table: &str,
+    column: &str,
+    definition: &str,
+) -> Result<()> {
     let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
     let columns = stmt
         .query_map([], |row| row.get::<_, String>(1))?
@@ -87,7 +116,9 @@ fn add_column_if_missing(conn: &Connection, table: &str, column: &str, definitio
     if columns.iter().any(|existing| existing == column) {
         return Ok(());
     }
-    conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {definition};"))?;
+    conn.execute_batch(&format!(
+        "ALTER TABLE {table} ADD COLUMN {column} {definition};"
+    ))?;
     Ok(())
 }
 
@@ -121,5 +152,45 @@ mod tests {
 
         assert!(columns.contains(&"enabled".to_string()));
         assert!(columns.contains(&"status".to_string()));
+    }
+
+    #[test]
+    fn foreign_keys_are_enabled_for_new_connections() {
+        let conn = init_in_memory().expect("database should initialize");
+        let enabled: i64 = conn
+            .query_row("PRAGMA foreign_keys", [], |row| row.get(0))
+            .expect("pragma should be readable");
+        assert_eq!(enabled, 1);
+    }
+
+    #[test]
+    fn deleting_a_task_removes_its_sync_mappings() {
+        let conn = init_in_memory().expect("database should initialize");
+        conn.execute(
+            "INSERT INTO tasks (id, title, status, priority, all_day, created_at, updated_at)
+             VALUES ('task-1', 'Mapped task', 'todo', 'medium', 0, 1, 1)",
+            [],
+        )
+        .expect("task should insert");
+        conn.execute(
+            "INSERT INTO sync_mappings (id, task_id, provider, external_id, last_synced, sync_status)
+             VALUES ('map-1', 'task-1', 'google', 'ext-1', 1, 'synced')",
+            [],
+        )
+        .expect("mapping should insert");
+
+        let deleted = conn
+            .execute("DELETE FROM tasks WHERE id = 'task-1'", [])
+            .expect("task should delete");
+        assert_eq!(deleted, 1);
+
+        let remaining: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sync_mappings WHERE task_id = 'task-1'",
+                [],
+                |row| row.get(0),
+            )
+            .expect("remaining mappings should count");
+        assert_eq!(remaining, 0);
     }
 }

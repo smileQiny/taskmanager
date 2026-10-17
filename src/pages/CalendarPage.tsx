@@ -2,14 +2,22 @@ import { useEffect } from 'react';
 import { TopBar } from '../components/layout/TopBar';
 import { CalendarView } from '../components/calendar/CalendarView';
 import { useCalendarStore } from '../stores/calendarStore';
+import { useSettingsStore } from '../stores/settingsStore';
 import { useTaskStore } from '../stores/taskStore';
 import { TaskDetailPanel } from '../components/tasks/TaskDetailPanel';
 
 export function CalendarPage() {
-  const { viewType, selectedDate, setViewType, goToToday, goToPrev, goToNext, setSelectedDate } = useCalendarStore();
+  const { viewType, selectedDate, setViewType, applyDefaultView, goToToday, goToPrev, goToNext, setSelectedDate } = useCalendarStore();
   const { tasks, fetchTasks, selectedTaskId, draftDefaults, selectTask, startNewTask } = useTaskStore();
+  const defaultCalendarView = useSettingsStore((state) => state.settings.default_calendar_view);
+  const settingsHydrated = useSettingsStore((state) => state.hydrated);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  useEffect(() => {
+    if (!settingsHydrated) return;
+    applyDefaultView(defaultCalendarView);
+  }, [applyDefaultView, defaultCalendarView, settingsHydrated]);
 
   const title = (() => {
     switch (viewType) {

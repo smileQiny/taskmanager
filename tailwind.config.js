@@ -5,7 +5,7 @@ export default {
   daisyui: {
     themes: [
       {
-        taskmanager: {
+        light: {
           "primary": "#2474d6",
           "primary-content": "#ffffff",
           "secondary": "#64748b",
@@ -15,13 +15,33 @@ export default {
           "neutral": "#0f172a",
           "neutral-content": "#f8fafc",
           "base-100": "#ffffff",
-          "base-200": "#f6f8fc",
+          "base-200": "#eef2f7",
           "base-300": "#dbe5f1",
           "base-content": "#0f172a",
           "info": "#2474d6",
           "success": "#16a34a",
           "warning": "#d97706",
           "error": "#e11d48",
+        },
+      },
+      {
+        dark: {
+          "primary": "#60a5fa",
+          "primary-content": "#0b1220",
+          "secondary": "#94a3b8",
+          "secondary-content": "#0b1220",
+          "accent": "#4ade80",
+          "accent-content": "#052e16",
+          "neutral": "#e2e8f0",
+          "neutral-content": "#0f172a",
+          "base-100": "#111827",
+          "base-200": "#0b1220",
+          "base-300": "#1f2937",
+          "base-content": "#e5e7eb",
+          "info": "#60a5fa",
+          "success": "#4ade80",
+          "warning": "#fbbf24",
+          "error": "#fb7185",
         },
       },
     ],

@@ -10,15 +10,23 @@ import { CockpitPage } from './pages/CockpitPage';
 import { useUpdateStore } from './stores/updateStore';
 import { useTaskStore } from './stores/taskStore';
 import { usePomodoroStore } from './stores/pomodoroStore';
+import { useSettingsStore } from './stores/settingsStore';
 import { listenForTasksChanged } from './services/appEvents';
+import { applyDocumentTheme } from './utils/appearance';
 
 export default function App() {
   const checkForUpdates = useUpdateStore((state) => state.check);
   const fetchTasks = useTaskStore((state) => state.fetchTasks);
   const refreshPomodoroTimer = usePomodoroStore((state) => state.refreshTimer);
   const tickPomodoroTimer = usePomodoroStore((state) => state.tick);
+  const fetchSettings = useSettingsStore((state) => state.fetchSettings);
   const isCockpit = typeof window !== 'undefined'
     && (window.location.search.includes('window=cockpit') || window.location.pathname === '/cockpit');
+
+  useEffect(() => {
+    applyDocumentTheme(useSettingsStore.getState().settings.theme);
+    void fetchSettings();
+  }, [fetchSettings]);
 
   useEffect(() => {
     if (!isCockpit) void checkForUpdates('startup');
@@ -56,9 +64,9 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div data-theme="taskmanager" className="flex h-screen bg-[#eef2f7] text-slate-900">
+      <div className="flex h-screen bg-base-200 text-base-content">
         <Sidebar />
-        <main className="flex-1 flex flex-col overflow-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(218,226,242,0.82),transparent_34%),radial-gradient(circle_at_92%_4%,rgba(214,235,229,0.55),transparent_32%)]">
+        <main className="app-canvas flex-1 flex flex-col overflow-hidden">
           <Routes>
             <Route path="/" element={<TodayPage />} />
             <Route path="/calendar" element={<CalendarPage />} />

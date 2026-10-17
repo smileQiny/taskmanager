@@ -2,13 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-  background: #eef2f7;
-}
-
+html,
 body {
   margin: 0;
-  background: #eef2f7;
+  background: hsl(var(--b2));
+  color: hsl(var(--bc));
+}
+
+.app-canvas {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(218, 226, 242, 0.82), transparent 34%),
+    radial-gradient(circle at 92% 4%, rgba(214, 235, 229, 0.55), transparent 32%),
+    hsl(var(--b2));
+}
+
+[data-theme="dark"] .app-canvas {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(37, 99, 235, 0.2), transparent 34%),
+    radial-gradient(circle at 92% 4%, rgba(16, 185, 129, 0.14), transparent 32%),
+    hsl(var(--b2));
+}
+
+[data-theme="dark"] .text-slate-900 { color: #f8fafc; }
+[data-theme="dark"] .text-slate-800 { color: #e2e8f0; }
+[data-theme="dark"] .text-slate-700 { color: #e2e8f0; }
+[data-theme="dark"] .text-slate-600 { color: #cbd5e1; }
+[data-theme="dark"] .text-slate-500 { color: #94a3b8; }
+[data-theme="dark"] .text-slate-400 { color: #94a3b8; }
+
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-white\/90,
+[data-theme="dark"] .bg-white\/86,
+[data-theme="dark"] .bg-white\/82,
+[data-theme="dark"] .bg-white\/78,
+[data-theme="dark"] .bg-white\/70,
+[data-theme="dark"] .bg-white\/62,
+[data-theme="dark"] .bg-white\/54 {
+  background-color: hsl(var(--b1) / 0.92);
+}
+
+[data-theme="dark"] .bg-slate-100\/90,
+[data-theme="dark"] .bg-slate-100\/80,
+[data-theme="dark"] .bg-slate-50\/90,
+[data-theme="dark"] .bg-\[\#f6f8fc\] {
+  background-color: hsl(var(--b3) / 0.72);
+}
+
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-\[\#dbe5f1\] {
+  border-color: hsl(var(--b3));
+}
+
+[data-theme="dark"] .hover\:bg-white:hover,
+[data-theme="dark"] .hover\:bg-slate-100\/80:hover {
+  background-color: hsl(var(--b3) / 0.9);
 }
 
 html.cockpit-window,
