@@ -43,6 +43,8 @@ cd src-tauri && cargo test && cargo check
 
 Browser preview at `http://127.0.0.1:1420` uses localStorage fallback data so UI flows can be tested outside the Tauri WebView. The packaged desktop app uses Tauri IPC and SQLite.
 
+`graphify-out/` is generated graph-analysis output. It is gitignored and should not be committed.
+
 ## One-Line Install
 
 Install the latest published GitHub Release directly from `smileQiny/taskmanager`.
