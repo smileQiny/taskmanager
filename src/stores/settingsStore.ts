@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import {
   AppMetadata,
   AppSettings,
+  MacosCalendarConnection,
   SyncAccount,
   SyncProvider,
   SyncRunResult,
 } from '../types/task';
+import { useTaskStore } from './taskStore';
 import { appService, settingsService, syncService } from '../services/taskService';
 import { broadcastSettingsUpdated } from '../services/appEvents';
 import { applyDocumentTheme } from '../utils/appearance';
@@ -18,6 +20,8 @@ interface SettingsStore {
   loading: boolean;
   hydrated: boolean;
   googleBusy: 'idle' | 'connecting' | 'syncing';
+  macosConnection: MacosCalendarConnection | null;
+  macosBusy: 'idle' | 'requesting' | 'syncing';
   syncRevision: number;
   error: string | null;
   fetchSettings: () => Promise<void>;
@@ -29,6 +33,10 @@ interface SettingsStore {
   connectGoogle: () => Promise<void>;
   disconnectGoogle: () => Promise<void>;
   resolveGoogleConflict: (taskId: string, strategy: 'local' | 'remote') => Promise<void>;
+  resolveSyncConflict: (provider: SyncProvider, taskId: string, strategy: 'local' | 'remote') => Promise<void>;
+  refreshMacosConnection: () => Promise<void>;
+  saveMacosCalendar: (input: { calendarId?: string; calendarName?: string; enabled?: boolean }) => Promise<void>;
+  requestMacosAccess: () => Promise<void>;
   syncNow: (provider: SyncProvider) => Promise<void>;
 }
 
@@ -45,6 +53,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   loading: false,
   hydrated: false,
   googleBusy: 'idle',
+  macosConnection: null,
+  macosBusy: 'idle',
   syncRevision: 0,
   error: null,
 
@@ -56,12 +66,13 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   fetchSettings: async () => {
     set({ loading: true, error: null });
     try {
-      const [settings, metadata, syncAccounts] = await Promise.all([
+      const [settings, metadata, syncAccounts, macosConnection] = await Promise.all([
         settingsService.get(),
         appService.getMetadata(),
         syncService.listAccounts(),
+        syncService.macosStatus(),
       ]);
-      set({ settings, metadata, syncAccounts, loading: false, hydrated: true });
+      set({ settings, metadata, syncAccounts, macosConnection, loading: false, hydrated: true });
       applyDocumentTheme(settings.theme);
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -151,11 +162,22 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   },
 
   resolveGoogleConflict: async (taskId, strategy) => {
+    await useSettingsStore.getState().resolveSyncConflict('google', taskId, strategy);
+  },
+
+  resolveSyncConflict: async (provider, taskId, strategy) => {
     try {
-      const result = await syncService.resolveConflict({ task_id: taskId, provider: 'google', strategy });
-      const syncAccounts = await syncService.listAccounts();
+      const result = await syncService.resolveConflict({ task_id: taskId, provider, strategy });
+      const [syncAccounts, macosConnection] = await Promise.all([
+        syncService.listAccounts(),
+        provider === 'macos' ? syncService.macosStatus() : Promise.resolve(useSettingsStore.getState().macosConnection),
+      ]);
+      if (strategy === 'remote') {
+        await useTaskStore.getState().fetchTasks();
+      }
       set((state) => ({
         syncAccounts,
+        macosConnection,
         lastSyncResult: result,
         error: null,
         syncRevision: state.syncRevision + 1,
@@ -166,20 +188,67 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     }
   },
 
+  refreshMacosConnection: async () => {
+    try {
+      const macosConnection = await syncService.macosStatus();
+      set({ macosConnection, error: null });
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  saveMacosCalendar: async ({ calendarId, calendarName, enabled }) => {
+    try {
+      const macosConnection = await syncService.saveMacosSettings({
+        calendar_id: calendarId,
+        calendar_name: calendarName,
+        enabled,
+      });
+      const syncAccounts = await syncService.listAccounts();
+      set({ macosConnection, syncAccounts, error: null });
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  requestMacosAccess: async () => {
+    set({ macosBusy: 'requesting', error: null });
+    try {
+      const macosConnection = await syncService.requestMacosAccess();
+      const syncAccounts = await syncService.listAccounts();
+      set({ macosConnection, syncAccounts, macosBusy: 'idle', error: null });
+    } catch (e) {
+      set({ macosBusy: 'idle', error: String(e) });
+      throw e;
+    }
+  },
+
   syncNow: async (provider) => {
     if (provider === 'google') set({ googleBusy: 'syncing', error: null });
+    if (provider === 'macos') set({ macosBusy: 'syncing', error: null });
     try {
       const result = await syncService.syncNow(provider);
-      const syncAccounts = provider === 'google' ? await syncService.listAccounts() : useSettingsStore.getState().syncAccounts;
+      const refreshAccount = provider === 'google' || provider === 'macos';
+      const syncAccounts = refreshAccount ? await syncService.listAccounts() : useSettingsStore.getState().syncAccounts;
+      const macosConnection = provider === 'macos'
+        ? await syncService.macosStatus()
+        : useSettingsStore.getState().macosConnection;
+      if (result.status === 'synced') {
+        await useTaskStore.getState().fetchTasks();
+      }
       set((state) => ({
         syncAccounts,
+        macosConnection,
         lastSyncResult: result,
         googleBusy: 'idle',
+        macosBusy: 'idle',
         error: result.status === 'error' ? result.message : null,
         syncRevision: state.syncRevision + 1,
       }));
     } catch (e) {
-      set({ googleBusy: 'idle', error: String(e) });
+      set({ googleBusy: 'idle', macosBusy: 'idle', error: String(e) });
       throw e;
     }
   },

@@ -72,6 +72,9 @@ pub fn run() {
             commands::sync::connect_google_calendar,
             commands::sync::disconnect_google_calendar,
             commands::sync::resolve_task_sync_conflict,
+            commands::sync::macos_calendar_status,
+            commands::sync::save_macos_calendar_settings,
+            commands::sync::request_macos_calendar_access,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

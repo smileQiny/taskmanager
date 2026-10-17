@@ -28,10 +28,7 @@ pub fn list_accounts(conn: &Connection) -> Result<Vec<SyncAccount>> {
                 provider: row.get(1)?,
                 enabled: row.get::<_, i64>(2)? != 0,
                 expires_at: row.get(3)?,
-                config: crate::modules::google_calendar::sanitize_provider_config(
-                    &row.get::<_, String>(1)?,
-                    row.get(4)?,
-                ),
+                config: public_provider_config(&row.get::<_, String>(1)?, row.get(4)?),
                 status: row.get(5)?,
                 last_error: row.get(6)?,
             })
@@ -47,10 +44,7 @@ pub fn upsert_account(conn: &Connection, input: UpsertSyncAccountInput) -> Resul
     } else {
         "not_configured"
     };
-    let config = crate::modules::google_calendar::sanitize_provider_config(
-        &input.provider,
-        input.config.clone(),
-    );
+    let config = public_provider_config(&input.provider, input.config.clone());
     conn.execute(
         "INSERT INTO sync_accounts (id, provider, enabled, config, status)
          VALUES (?1, ?2, ?3, ?4, ?5)
@@ -90,9 +84,16 @@ pub fn sync_now(conn: &Connection, provider: String) -> Result<SyncRunResult> {
             affected_tasks: 0,
         });
     }
+    if account.provider == crate::modules::macos_calendar::MACOS_PROVIDER {
+        return crate::modules::macos_calendar::blocked_result(
+            conn,
+            &account,
+            crate::modules::macos_calendar::live_access(),
+        )?
+        .ok_or_else(|| anyhow::anyhow!("macOS Calendar sync requires the async command"));
+    }
     let affected_tasks = mark_provider_mappings(conn, &account.provider, "needs_auth")?;
     let message = match account.provider.as_str() {
-        "macos" => "macOS calendar sync bridge is prepared; EventKit authorization is required before live sync.",
         "feishu" => "Feishu sync requires OAuth credentials before live sync.",
         "wecom" => "WeCom sync requires CorpID and OAuth credentials before live sync.",
         "google" => "Google Calendar sync requires OAuth credentials before live sync.",
@@ -173,15 +174,19 @@ fn get_account(conn: &Connection, provider: &str) -> Result<SyncAccount> {
             provider: row.get(1)?,
             enabled: row.get::<_, i64>(2)? != 0,
             expires_at: row.get(3)?,
-            config: crate::modules::google_calendar::sanitize_provider_config(
-                provider,
-                row.get(4)?,
-            ),
+            config: public_provider_config(provider, row.get(4)?),
             status: row.get(5)?,
             last_error: row.get(6)?,
         })
     })?;
     Ok(account)
+}
+
+fn public_provider_config(provider: &str, config: Option<String>) -> Option<String> {
+    if provider == crate::modules::macos_calendar::MACOS_PROVIDER {
+        return crate::modules::macos_calendar::sanitize_public_config(config);
+    }
+    crate::modules::google_calendar::sanitize_provider_config(provider, config)
 }
 
 fn validate_provider(provider: &str) -> Result<()> {
@@ -284,5 +289,58 @@ mod tests {
 
         let states = list_task_sync_states(&conn, &task.id).expect("states should list");
         assert_eq!(states[0].sync_status, "needs_auth");
+    }
+
+    #[test]
+    fn macos_sync_off_mac_reports_unsupported_without_marking_tasks_authorized() {
+        let conn = db::init_in_memory().expect("database should initialize");
+        let task = task_module::create(
+            &conn,
+            CreateTaskInput {
+                title: "Calendar task".to_string(),
+                description: None,
+                status: None,
+                priority: None,
+                start_time: None,
+                end_time: None,
+                all_day: None,
+                recurrence: None,
+                tags: None,
+            },
+        )
+        .expect("task should be created");
+        let account = upsert_account(
+            &conn,
+            UpsertSyncAccountInput {
+                provider: "macos".to_string(),
+                enabled: true,
+                config: Some(
+                    r#"{"calendar_name":"Home","client_secret":"super-secret"}"#.to_string(),
+                ),
+            },
+        )
+        .expect("account should upsert");
+        let config = account.config.expect("config should be stored");
+        assert!(config.contains("Home"));
+        assert!(!config.contains("super-secret"));
+        set_task_sync(
+            &conn,
+            SetTaskSyncInput {
+                task_id: task.id.clone(),
+                provider: "macos".to_string(),
+                enabled: true,
+            },
+        )
+        .expect("mapping should be enabled");
+
+        if cfg!(target_os = "macos") {
+            return;
+        }
+        let result = sync_now(&conn, "macos".to_string()).expect("sync status should return");
+        assert_eq!(result.status, "unsupported");
+        assert!(result.message.contains("only available on macOS"));
+        assert_ne!(result.status, "synced");
+        let states = list_task_sync_states(&conn, &task.id).expect("states should list");
+        assert_eq!(states[0].sync_status, "pending");
     }
 }

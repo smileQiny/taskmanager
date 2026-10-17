@@ -6,8 +6,10 @@ import {
   PomodoroSession,
   PomodoroTimerSnapshot,
   GoogleConnection,
+  MacosCalendarConnection,
   ResolveSyncConflictInput,
   SaveGoogleSettingsInput,
+  SaveMacosCalendarSettingsInput,
   SyncAccount,
   SyncProvider,
   SyncRunResult,
@@ -90,7 +92,20 @@ export const syncService = {
     : Promise.reject(new Error('Google Calendar connection is available in the desktop app only.')),
   resolveConflict: (input: ResolveSyncConflictInput) => hasTauri
     ? invoke<SyncRunResult>('resolve_task_sync_conflict', { input })
-    : Promise.reject(new Error('Google Calendar connection is available in the desktop app only.')),
+    : Promise.reject(new Error(
+      input.provider === 'macos'
+        ? 'macOS Calendar sync is only available on macOS.'
+        : 'Calendar sync conflict resolution is available in the desktop app only.',
+    )),
+  macosStatus: () => hasTauri
+    ? invoke<MacosCalendarConnection>('macos_calendar_status')
+    : local(readLocalMacosConnection),
+  saveMacosSettings: (input: SaveMacosCalendarSettingsInput) => hasTauri
+    ? invoke<MacosCalendarConnection>('save_macos_calendar_settings', { input })
+    : Promise.reject(new Error('macOS Calendar sync is only available on macOS.')),
+  requestMacosAccess: () => hasTauri
+    ? invoke<MacosCalendarConnection>('request_macos_calendar_access')
+    : Promise.reject(new Error('macOS Calendar sync is only available on macOS.')),
 };
 
 function local<T>(fn: () => T): Promise<T> {
@@ -270,6 +285,29 @@ function upsertLocalSyncAccount(input: UpsertSyncAccountInput): SyncAccount {
   return account;
 }
 
+function readLocalMacosConnection(): MacosCalendarConnection {
+  const account = readSyncAccounts().find((item) => item.provider === 'macos');
+  let calendarId = '';
+  let calendarName = 'Calendar';
+  try {
+    const parsed = JSON.parse(account?.config || '{}') as { calendar_id?: string; calendar_name?: string };
+    calendarId = parsed.calendar_id ?? '';
+    calendarName = parsed.calendar_name || 'Calendar';
+  } catch {
+    calendarId = '';
+  }
+  return {
+    supported: false,
+    status: 'unsupported',
+    connected: false,
+    permission: 'unsupported',
+    calendar_id: calendarId,
+    calendar_name: calendarName,
+    calendars: [],
+    last_error: 'macOS Calendar sync is only available on macOS.',
+  };
+}
+
 function syncLocalProvider(provider: SyncProvider): SyncRunResult {
   const account = readSyncAccounts().find((item) => item.provider === provider);
   if (!account?.enabled) {
@@ -277,6 +315,14 @@ function syncLocalProvider(provider: SyncProvider): SyncRunResult {
       provider,
       status: 'not_configured',
       message: 'Provider is disabled. Enable it in Settings before syncing.',
+      affected_tasks: 0,
+    };
+  }
+  if (provider === 'macos') {
+    return {
+      provider,
+      status: 'unsupported',
+      message: 'macOS Calendar sync is only available on macOS.',
       affected_tasks: 0,
     };
   }
