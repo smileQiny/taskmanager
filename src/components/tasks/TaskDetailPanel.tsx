@@ -183,6 +183,10 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
             <span className="text-sm text-slate-600">全天任务</span>
           </label>
 
+          <p className="text-xs text-slate-400">
+            重复规则（recurrence）只在数据结构中预留，当前界面不支持设置或同步重复日程。
+          </p>
+
           <div className="grid grid-cols-1 gap-3">
             <label className="form-control">
               <span className="label-text mb-1 text-slate-500">开始时间</span>

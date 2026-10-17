@@ -4,7 +4,8 @@ Local-first desktop task manager built with Tauri 2, React 19, TypeScript, Rust,
 
 ## Current Features
 
-- Local task CRUD with title, description, status, priority, schedule, all-day flag, and tags.
+- Local task CRUD with title, description, status, priority, schedule, all-day flag, and tags. `recurrence` is reserved on the task schema only; the UI does not edit or sync repeating events yet.
+- Light and dark themes, loaded with the rest of the settings on startup, including the cockpit window. The default calendar view is applied when the calendar opens.
 - Today workspace with overdue, today, and unscheduled task groups.
 - Task workspace with search, status filter, priority filter, and sorting.
 - Calendar workspace with month/week/day views, click-to-create slots, and task editing.

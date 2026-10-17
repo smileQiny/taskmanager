@@ -8,6 +8,7 @@ import {
 } from '../types/task';
 import { appService, settingsService, syncService } from '../services/taskService';
 import { broadcastSettingsUpdated } from '../services/appEvents';
+import { applyDocumentTheme } from '../utils/appearance';
 
 interface SettingsStore {
   settings: AppSettings;
@@ -15,6 +16,7 @@ interface SettingsStore {
   syncAccounts: SyncAccount[];
   lastSyncResult: SyncRunResult | null;
   loading: boolean;
+  hydrated: boolean;
   error: string | null;
   fetchSettings: () => Promise<void>;
   applySettings: (settings: AppSettings) => void;
@@ -35,11 +37,12 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   syncAccounts: [],
   lastSyncResult: null,
   loading: false,
+  hydrated: false,
   error: null,
 
   applySettings: (settings) => {
     set({ settings, error: null });
-    document.documentElement.setAttribute('data-theme', settings.theme);
+    applyDocumentTheme(settings.theme);
   },
 
   fetchSettings: async () => {
@@ -50,8 +53,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
         appService.getMetadata(),
         syncService.listAccounts(),
       ]);
-      set({ settings, metadata, syncAccounts, loading: false });
-      document.documentElement.setAttribute('data-theme', settings.theme);
+      set({ settings, metadata, syncAccounts, loading: false, hydrated: true });
+      applyDocumentTheme(settings.theme);
     } catch (e) {
       set({ error: String(e), loading: false });
     }
