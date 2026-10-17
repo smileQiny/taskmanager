@@ -96,7 +96,8 @@ export interface SyncAccount {
   enabled: boolean;
   expires_at?: number;
   config?: string;
-  status: 'not_configured' | 'pending_auth' | 'needs_auth' | 'synced' | 'error';
+  status: 'not_configured' | 'pending_auth' | 'needs_auth' | 'authenticated' | 'synced' | 'error';
+  last_error?: string | null;
 }
 
 export interface UpsertSyncAccountInput {
@@ -124,4 +125,26 @@ export interface SetTaskSyncInput {
   task_id: string;
   provider: SyncProvider;
   enabled: boolean;
+}
+
+export interface GoogleConnection {
+  status: string;
+  connected: boolean;
+  client_id: string;
+  calendar_id: string;
+  has_client_secret: boolean;
+  last_error?: string | null;
+}
+
+export interface SaveGoogleSettingsInput {
+  client_id: string;
+  calendar_id?: string;
+  client_secret?: string;
+  enabled?: boolean;
+}
+
+export interface ResolveSyncConflictInput {
+  task_id: string;
+  provider: SyncProvider;
+  strategy: 'local' | 'remote';
 }

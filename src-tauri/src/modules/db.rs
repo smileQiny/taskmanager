@@ -78,16 +78,37 @@ fn migrate(conn: &Connection) -> Result<()> {
         CREATE TABLE IF NOT EXISTS app_settings (
             key        TEXT PRIMARY KEY,
             value      TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS oauth_secrets (
+            id         TEXT PRIMARY KEY,
+            nonce      BLOB NOT NULL,
+            ciphertext BLOB NOT NULL
         );"
     )?;
-    add_column_if_missing(conn, "sync_accounts", "enabled", "INTEGER NOT NULL DEFAULT 0")?;
-    add_column_if_missing(conn, "sync_accounts", "status", "TEXT NOT NULL DEFAULT 'not_configured'")?;
+    add_column_if_missing(
+        conn,
+        "sync_accounts",
+        "enabled",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    add_column_if_missing(
+        conn,
+        "sync_accounts",
+        "status",
+        "TEXT NOT NULL DEFAULT 'not_configured'",
+    )?;
     add_column_if_missing(conn, "pomodoro_sessions", "note", "TEXT")?;
     add_column_if_missing(conn, "pomodoro_sessions", "task_id", "TEXT")?;
+    add_column_if_missing(conn, "sync_accounts", "last_error", "TEXT")?;
     Ok(())
 }
 
-fn add_column_if_missing(conn: &Connection, table: &str, column: &str, definition: &str) -> Result<()> {
+fn add_column_if_missing(
+    conn: &Connection,
+    table: &str,
+    column: &str,
+    definition: &str,
+) -> Result<()> {
     let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
     let columns = stmt
         .query_map([], |row| row.get::<_, String>(1))?
@@ -95,7 +116,9 @@ fn add_column_if_missing(conn: &Connection, table: &str, column: &str, definitio
     if columns.iter().any(|existing| existing == column) {
         return Ok(());
     }
-    conn.execute_batch(&format!("ALTER TABLE {table} ADD COLUMN {column} {definition};"))?;
+    conn.execute_batch(&format!(
+        "ALTER TABLE {table} ADD COLUMN {column} {definition};"
+    ))?;
     Ok(())
 }
 

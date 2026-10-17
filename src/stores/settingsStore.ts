@@ -17,12 +17,18 @@ interface SettingsStore {
   lastSyncResult: SyncRunResult | null;
   loading: boolean;
   hydrated: boolean;
+  googleBusy: 'idle' | 'connecting' | 'syncing';
+  syncRevision: number;
   error: string | null;
   fetchSettings: () => Promise<void>;
   applySettings: (settings: AppSettings) => void;
   updateSettings: (input: Partial<AppSettings>) => Promise<void>;
   toggleSyncAccount: (provider: SyncProvider, enabled: boolean) => Promise<void>;
   saveSyncAccountConfig: (provider: SyncProvider, config: string) => Promise<void>;
+  saveGoogleSettings: (input: { clientId: string; calendarId: string; clientSecret?: string; enabled?: boolean }) => Promise<void>;
+  connectGoogle: () => Promise<void>;
+  disconnectGoogle: () => Promise<void>;
+  resolveGoogleConflict: (taskId: string, strategy: 'local' | 'remote') => Promise<void>;
   syncNow: (provider: SyncProvider) => Promise<void>;
 }
 
@@ -38,6 +44,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   lastSyncResult: null,
   loading: false,
   hydrated: false,
+  googleBusy: 'idle',
+  syncRevision: 0,
   error: null,
 
   applySettings: (settings) => {
@@ -103,12 +111,75 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     }
   },
 
-  syncNow: async (provider) => {
+  saveGoogleSettings: async ({ clientId, calendarId, clientSecret, enabled }) => {
     try {
-      const result = await syncService.syncNow(provider);
-      set({ lastSyncResult: result, error: null });
+      await syncService.saveGoogleSettings({
+        client_id: clientId,
+        calendar_id: calendarId,
+        client_secret: clientSecret,
+        enabled,
+      });
+      const syncAccounts = await syncService.listAccounts();
+      set({ syncAccounts, error: null });
     } catch (e) {
       set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  connectGoogle: async () => {
+    set({ googleBusy: 'connecting', error: null });
+    try {
+      await syncService.connectGoogle();
+      const syncAccounts = await syncService.listAccounts();
+      set({ syncAccounts, googleBusy: 'idle', error: null });
+    } catch (e) {
+      set({ googleBusy: 'idle', error: String(e) });
+      throw e;
+    }
+  },
+
+  disconnectGoogle: async () => {
+    try {
+      await syncService.disconnectGoogle();
+      const syncAccounts = await syncService.listAccounts();
+      set((state) => ({ syncAccounts, error: null, syncRevision: state.syncRevision + 1 }));
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  resolveGoogleConflict: async (taskId, strategy) => {
+    try {
+      const result = await syncService.resolveConflict({ task_id: taskId, provider: 'google', strategy });
+      const syncAccounts = await syncService.listAccounts();
+      set((state) => ({
+        syncAccounts,
+        lastSyncResult: result,
+        error: null,
+        syncRevision: state.syncRevision + 1,
+      }));
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  syncNow: async (provider) => {
+    if (provider === 'google') set({ googleBusy: 'syncing', error: null });
+    try {
+      const result = await syncService.syncNow(provider);
+      const syncAccounts = provider === 'google' ? await syncService.listAccounts() : useSettingsStore.getState().syncAccounts;
+      set((state) => ({
+        syncAccounts,
+        lastSyncResult: result,
+        googleBusy: 'idle',
+        error: result.status === 'error' ? result.message : null,
+        syncRevision: state.syncRevision + 1,
+      }));
+    } catch (e) {
+      set({ googleBusy: 'idle', error: String(e) });
       throw e;
     }
   },

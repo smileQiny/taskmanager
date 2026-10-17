@@ -11,7 +11,7 @@ const PROVIDERS: [&str; 4] = ["feishu", "macos", "wecom", "google"];
 pub fn list_accounts(conn: &Connection) -> Result<Vec<SyncAccount>> {
     ensure_default_accounts(conn)?;
     let mut stmt = conn.prepare(
-        "SELECT id, provider, enabled, expires_at, config, status
+        "SELECT id, provider, enabled, expires_at, config, status, last_error
          FROM sync_accounts
          ORDER BY CASE provider
             WHEN 'feishu' THEN 0
@@ -28,8 +28,12 @@ pub fn list_accounts(conn: &Connection) -> Result<Vec<SyncAccount>> {
                 provider: row.get(1)?,
                 enabled: row.get::<_, i64>(2)? != 0,
                 expires_at: row.get(3)?,
-                config: row.get(4)?,
+                config: crate::modules::google_calendar::sanitize_provider_config(
+                    &row.get::<_, String>(1)?,
+                    row.get(4)?,
+                ),
                 status: row.get(5)?,
+                last_error: row.get(6)?,
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
@@ -38,7 +42,15 @@ pub fn list_accounts(conn: &Connection) -> Result<Vec<SyncAccount>> {
 
 pub fn upsert_account(conn: &Connection, input: UpsertSyncAccountInput) -> Result<SyncAccount> {
     validate_provider(&input.provider)?;
-    let status = if input.enabled { "pending_auth" } else { "not_configured" };
+    let status = if input.enabled {
+        "pending_auth"
+    } else {
+        "not_configured"
+    };
+    let config = crate::modules::google_calendar::sanitize_provider_config(
+        &input.provider,
+        input.config.clone(),
+    );
     conn.execute(
         "INSERT INTO sync_accounts (id, provider, enabled, config, status)
          VALUES (?1, ?2, ?3, ?4, ?5)
@@ -50,7 +62,7 @@ pub fn upsert_account(conn: &Connection, input: UpsertSyncAccountInput) -> Resul
             Uuid::new_v4().to_string(),
             input.provider,
             input.enabled as i64,
-            input.config,
+            config,
             status,
         ],
     )?;
@@ -61,6 +73,15 @@ pub fn sync_now(conn: &Connection, provider: String) -> Result<SyncRunResult> {
     validate_provider(&provider)?;
     ensure_default_accounts(conn)?;
     let account = get_account(conn, &provider)?;
+    if account.provider == "google" {
+        let has_tokens = crate::modules::google_calendar::google_tokens_present(conn)?;
+        if let Some(result) =
+            crate::modules::google_calendar::blocked_result(conn, &account, has_tokens)?
+        {
+            return Ok(result);
+        }
+        bail!("Google Calendar sync requires the async command");
+    }
     if !account.enabled {
         return Ok(SyncRunResult {
             provider,
@@ -143,7 +164,7 @@ fn ensure_default_accounts(conn: &Connection) -> Result<()> {
 
 fn get_account(conn: &Connection, provider: &str) -> Result<SyncAccount> {
     let mut stmt = conn.prepare(
-        "SELECT id, provider, enabled, expires_at, config, status
+        "SELECT id, provider, enabled, expires_at, config, status, last_error
          FROM sync_accounts WHERE provider = ?1",
     )?;
     let account = stmt.query_row(params![provider], |row| {
@@ -152,8 +173,12 @@ fn get_account(conn: &Connection, provider: &str) -> Result<SyncAccount> {
             provider: row.get(1)?,
             enabled: row.get::<_, i64>(2)? != 0,
             expires_at: row.get(3)?,
-            config: row.get(4)?,
+            config: crate::modules::google_calendar::sanitize_provider_config(
+                provider,
+                row.get(4)?,
+            ),
             status: row.get(5)?,
+            last_error: row.get(6)?,
         })
     })?;
     Ok(account)
@@ -253,7 +278,8 @@ mod tests {
         assert_eq!(states.len(), 1);
         assert_eq!(states[0].sync_status, "pending");
 
-        let result = sync_now(&conn, "google".to_string()).expect("sync should update mapping state");
+        let result =
+            sync_now(&conn, "google".to_string()).expect("sync should update mapping state");
         assert_eq!(result.affected_tasks, 1);
 
         let states = list_task_sync_states(&conn, &task.id).expect("states should list");

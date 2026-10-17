@@ -67,6 +67,11 @@ pub fn run() {
             commands::sync::sync_provider_now,
             commands::sync::list_task_sync_states,
             commands::sync::set_task_sync,
+            commands::sync::google_connection_status,
+            commands::sync::save_google_settings,
+            commands::sync::connect_google_calendar,
+            commands::sync::disconnect_google_calendar,
+            commands::sync::resolve_task_sync_conflict,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
