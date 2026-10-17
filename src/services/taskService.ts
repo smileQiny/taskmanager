@@ -5,6 +5,9 @@ import {
   CreateTaskInput,
   PomodoroSession,
   PomodoroTimerSnapshot,
+  GoogleConnection,
+  ResolveSyncConflictInput,
+  SaveGoogleSettingsInput,
   SyncAccount,
   SyncProvider,
   SyncRunResult,
@@ -75,6 +78,19 @@ export const syncService = {
   syncNow: (provider: SyncProvider) => hasTauri ? invoke<SyncRunResult>('sync_provider_now', { provider }) : local(() => syncLocalProvider(provider)),
   listTaskStates: (taskId: string) => hasTauri ? invoke<TaskSyncState[]>('list_task_sync_states', { taskId }) : local(() => readTaskSyncStates(taskId)),
   setTaskSync: (input: SetTaskSyncInput) => hasTauri ? invoke<TaskSyncState[]>('set_task_sync', { input }) : local(() => setLocalTaskSync(input)),
+  googleStatus: () => hasTauri ? invoke<GoogleConnection>('google_connection_status') : local(readLocalGoogleConnection),
+  saveGoogleSettings: (input: SaveGoogleSettingsInput) => hasTauri
+    ? invoke<GoogleConnection>('save_google_settings', { input })
+    : Promise.reject(new Error('Google Calendar connection is available in the desktop app only.')),
+  connectGoogle: () => hasTauri
+    ? invoke<GoogleConnection>('connect_google_calendar')
+    : Promise.reject(new Error('Google Calendar connection is available in the desktop app only.')),
+  disconnectGoogle: () => hasTauri
+    ? invoke<GoogleConnection>('disconnect_google_calendar')
+    : Promise.reject(new Error('Google Calendar connection is available in the desktop app only.')),
+  resolveConflict: (input: ResolveSyncConflictInput) => hasTauri
+    ? invoke<SyncRunResult>('resolve_task_sync_conflict', { input })
+    : Promise.reject(new Error('Google Calendar connection is available in the desktop app only.')),
 };
 
 function local<T>(fn: () => T): Promise<T> {
@@ -212,6 +228,18 @@ function syncLocalPomodoroTimer(): PomodoroTimerSnapshot {
     return completeLocalPomodoroTimer();
   }
   return { timer: normalizeLocalPomodoroTimer(timer) };
+}
+
+function readLocalGoogleConnection(): GoogleConnection {
+  const account = readSyncAccounts().find((item) => item.provider === 'google');
+  return {
+    status: account?.status ?? 'not_configured',
+    connected: false,
+    client_id: '',
+    calendar_id: 'primary',
+    has_client_secret: false,
+    last_error: 'Google Calendar connection is available in the desktop app only.',
+  };
 }
 
 function readSyncAccounts(): SyncAccount[] {

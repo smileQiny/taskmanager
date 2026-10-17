@@ -6,3 +6,4 @@ src-tauri/gen/
 .claude/
 docs/superpowers/
 .playwright-cli/
+graphify-out/

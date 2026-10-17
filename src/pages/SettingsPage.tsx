@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { TopBar } from '../components/layout/TopBar';
 import { useSettingsStore } from '../stores/settingsStore';
 import { usePomodoroStore } from '../stores/pomodoroStore';
@@ -6,6 +6,7 @@ import { useUpdateStore } from '../stores/updateStore';
 import { AppUpdateInfo, InstallUpdateResult, UpdateStatus } from '../types/update';
 import { SyncAccount, SyncProvider } from '../types/task';
 import { minCockpitOpacity, maxCockpitOpacity } from '../utils/cockpitTransparency';
+import { googleActions, googleConnectionPhase, isDesktopRuntime } from '../utils/googleSync';
 
 const providerLabels: Record<SyncProvider, string> = {
   feishu: '飞书日历',
@@ -18,7 +19,7 @@ const providerDescriptions: Record<SyncProvider, string> = {
   feishu: '优先级最高。需要 OAuth 应用凭证后启用真实同步。',
   macos: '本机日历桥接。需要系统日历授权后启用真实同步。',
   wecom: '需要企业微信 CorpID 和 OAuth 配置。',
-  google: '后续通过 Google Calendar OAuth 接入。',
+  google: '桌面端通过 PKCE 授权后，按任务勾选与 Google Calendar 双向同步。',
 };
 
 export function SettingsPage() {
@@ -33,7 +34,11 @@ export function SettingsPage() {
     updateSettings,
     toggleSyncAccount,
     saveSyncAccountConfig,
+    saveGoogleSettings,
+    connectGoogle,
+    disconnectGoogle,
     syncNow,
+    googleBusy,
   } = useSettingsStore();
   const { setDurationMinutes } = usePomodoroStore();
   const {
@@ -153,7 +158,18 @@ export function SettingsPage() {
               </div>
             )}
             <div className="mt-4 divide-y divide-slate-100">
-              {syncAccounts.map((account) => (
+              {syncAccounts.map((account) => account.provider === 'google' ? (
+                <GoogleSyncRow
+                  key={account.provider}
+                  account={account}
+                  busy={googleBusy}
+                  onToggle={(enabled) => void toggleSyncAccount(account.provider, enabled)}
+                  onSave={(input) => void saveGoogleSettings(input).catch(() => undefined)}
+                  onConnect={() => void connectGoogle().catch(() => undefined)}
+                  onDisconnect={() => void disconnectGoogle().catch(() => undefined)}
+                  onSync={() => void syncNow(account.provider)}
+                />
+              ) : (
                 <SyncProviderRow
                   key={account.provider}
                   account={account}
@@ -280,6 +296,132 @@ function VersionMetric({
   );
 }
 
+function GoogleSyncRow({
+  account,
+  busy,
+  onToggle,
+  onSave,
+  onConnect,
+  onDisconnect,
+  onSync,
+}: {
+  account: SyncAccount;
+  busy: 'idle' | 'connecting' | 'syncing';
+  onToggle: (enabled: boolean) => void;
+  onSave: (input: { clientId: string; calendarId: string; clientSecret?: string }) => void;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  onSync: () => void;
+}) {
+  const desktop = isDesktopRuntime();
+  const parsed = parseGoogleConfig(account.config);
+  const [clientId, setClientId] = useState(parsed.clientId);
+  const [calendarId, setCalendarId] = useState(parsed.calendarId);
+  useEffect(() => {
+    setClientId(parsed.clientId);
+    setCalendarId(parsed.calendarId);
+  }, [parsed.clientId, parsed.calendarId]);
+  const phase = googleConnectionPhase({
+    desktop,
+    clientId,
+    status: account.status,
+    busy,
+  });
+  const actions = googleActions(phase);
+  const save = (secret?: string) => onSave({
+    clientId,
+    calendarId,
+    clientSecret: secret,
+  });
+
+  return (
+    <div className="grid gap-3 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-slate-900">{providerLabels.google}</p>
+            <span className="rounded bg-slate-100/90 px-2 py-0.5 text-xs text-slate-500">{statusLabel(account.status)}</span>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">{providerDescriptions.google}</p>
+        </div>
+        <input
+          type="checkbox"
+          className="toggle toggle-primary"
+          checked={account.enabled}
+          onChange={(event) => onToggle(event.target.checked)}
+          aria-label="Google Calendar 启用"
+        />
+      </div>
+      {phase === 'desktop_only' && (
+        <div className="rounded-md bg-slate-100/90 px-3 py-2 text-sm text-slate-600">
+          浏览器预览不能连接 Google。请在桌面版中授权。
+        </div>
+      )}
+      {account.last_error && (
+        <div className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{account.last_error}</div>
+      )}
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">OAuth Client ID</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            value={clientId}
+            onChange={(event) => setClientId(event.target.value)}
+            onBlur={() => save()}
+            placeholder="apps.googleusercontent.com"
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">日历 ID</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            value={calendarId}
+            onChange={(event) => setCalendarId(event.target.value)}
+            onBlur={() => save()}
+            placeholder="primary"
+          />
+        </label>
+        <label className="form-control md:col-span-2">
+          <span className="label-text mb-1 text-slate-500">OAuth Client Secret（可选，只写入本机，不会回显）</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            type="password"
+            defaultValue=""
+            placeholder="留空表示不修改"
+            onBlur={(event) => {
+              const secret = event.target.value.trim();
+              if (!secret) return;
+              save(secret);
+              event.target.value = '';
+            }}
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <button className="btn btn-sm" onClick={onConnect} disabled={!actions.connect || busy !== 'idle'}>
+          {busy === 'connecting' ? '连接中...' : '连接 Google'}
+        </button>
+        <button className="btn btn-sm" onClick={onDisconnect} disabled={!actions.disconnect || busy !== 'idle'}>断开</button>
+        <button className="btn btn-sm btn-primary" onClick={onSync} disabled={!actions.sync || busy !== 'idle'}>
+          {busy === 'syncing' ? '同步中...' : '立即同步'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function parseGoogleConfig(config?: string): { clientId: string; calendarId: string } {
+  try {
+    const parsed = JSON.parse(config || '{}') as { client_id?: string; calendar_id?: string };
+    return {
+      clientId: parsed.client_id ?? '',
+      calendarId: parsed.calendar_id || 'primary',
+    };
+  } catch {
+    return { clientId: '', calendarId: 'primary' };
+  }
+}
+
 function SyncProviderRow({
   account,
   onToggle,
@@ -339,6 +481,7 @@ function statusLabel(status: string): string {
     not_configured: '未配置',
     pending_auth: '等待授权',
     needs_auth: '需要授权',
+    authenticated: '已连接',
     synced: '已同步',
     error: '错误',
   }[status] ?? status;

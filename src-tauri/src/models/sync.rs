@@ -8,6 +8,8 @@ pub struct SyncAccount {
     pub expires_at: Option<i64>,
     pub config: Option<String>,
     pub status: String,
+    #[serde(default)]
+    pub last_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,4 +41,29 @@ pub struct SetTaskSyncInput {
     pub task_id: String,
     pub provider: String,
     pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GoogleConnection {
+    pub status: String,
+    pub connected: bool,
+    pub client_id: String,
+    pub calendar_id: String,
+    pub has_client_secret: bool,
+    pub last_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveGoogleSettingsInput {
+    pub client_id: String,
+    pub calendar_id: Option<String>,
+    pub client_secret: Option<String>,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResolveSyncConflictInput {
+    pub task_id: String,
+    pub provider: String,
+    pub strategy: String,
 }

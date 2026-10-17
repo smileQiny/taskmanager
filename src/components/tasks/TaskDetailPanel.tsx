@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { CreateTaskInput, SyncProvider, Task, TaskSyncState } from '../../types/task';
 import { useTaskStore } from '../../stores/taskStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 import { syncService } from '../../services/taskService';
 
 interface TaskDetailPanelProps {
@@ -30,6 +31,8 @@ const syncProviders: Array<{ provider: SyncProvider; label: string }> = [
 
 export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
   const { createTask, updateTask, deleteTask, closePanel } = useTaskStore();
+  const syncRevision = useSettingsStore((state) => state.syncRevision);
+  const resolveGoogleConflict = useSettingsStore((state) => state.resolveGoogleConflict);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<Task['status']>('todo');
@@ -81,7 +84,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
         setSyncError(null);
       })
       .catch((error) => setSyncError(String(error)));
-  }, [task]);
+  }, [task, syncRevision]);
 
   const canSubmit = useMemo(() => title.trim().length > 0, [title]);
 
@@ -183,6 +186,10 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
             <span className="text-sm text-slate-600">全天任务</span>
           </label>
 
+          <p className="text-xs text-slate-400">
+            重复规则（recurrence）只在数据结构中预留，当前界面不支持设置或同步重复日程。
+          </p>
+
           <div className="grid grid-cols-1 gap-3">
             <label className="form-control">
               <span className="label-text mb-1 text-slate-500">开始时间</span>
@@ -214,18 +221,41 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                 {syncProviders.map(({ provider, label }) => {
                   const state = syncStates.find((item) => item.provider === provider);
                   return (
-                    <label key={provider} className="flex items-center justify-between rounded-lg bg-slate-50/90 px-2 py-2 text-sm">
-                      <span>
-                        <span className="block text-slate-700">{label}</span>
-                        <span className="text-xs text-slate-400">{state ? syncStatusLabel(state.sync_status) : '未选择'}</span>
-                      </span>
-                      <input
-                        type="checkbox"
-                        className="toggle toggle-xs toggle-primary"
-                        checked={Boolean(state)}
-                        onChange={(event) => void setTaskSync(task.id, provider, event.target.checked, setSyncStates, setSyncError)}
-                      />
-                    </label>
+                    <div key={provider} className="rounded-lg bg-slate-50/90 px-2 py-2 text-sm">
+                      <label className="flex items-center justify-between">
+                        <span>
+                          <span className="block text-slate-700">{label}</span>
+                          <span className="text-xs text-slate-400">{state ? syncStatusLabel(state.sync_status) : '未选择'}</span>
+                        </span>
+                        <input
+                          type="checkbox"
+                          className="toggle toggle-xs toggle-primary"
+                          checked={Boolean(state)}
+                          onChange={(event) => void setTaskSync(task.id, provider, event.target.checked, setSyncStates, setSyncError)}
+                        />
+                      </label>
+                      {provider === 'google' && state?.sync_status === 'conflict' && (
+                        <div className="mt-2 space-y-2">
+                          <p className="text-xs text-amber-700">本地和 Google 都改过，未自动覆盖。</p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-xs"
+                              onClick={() => void resolveGoogleConflict(task.id, 'local').catch((error) => setSyncError(String(error)))}
+                            >
+                              保留本地
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-xs"
+                              onClick={() => void resolveGoogleConflict(task.id, 'remote').catch((error) => setSyncError(String(error)))}
+                            >
+                              采用 Google
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
