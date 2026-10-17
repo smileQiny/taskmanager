@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { settingsService, taskService } from './taskService';
+import { settingsService, syncService, taskService } from './taskService';
 
 describe('browser task service fallback', () => {
   beforeEach(() => {
@@ -32,6 +32,27 @@ describe('browser task service fallback', () => {
 
     expect(settings.cockpit_opacity).toBe(35);
     expect((await settingsService.get()).cockpit_opacity).toBe(35);
+  });
+
+  it('does not report macOS calendar sync as successful outside macOS', async () => {
+    await syncService.upsertAccount({
+      provider: 'macos',
+      enabled: true,
+      config: '{"calendar_name":"Home"}',
+    });
+    const task = await taskService.create({ title: 'Calendar task' });
+    await syncService.setTaskSync({ task_id: task.id, provider: 'macos', enabled: true });
+
+    const result = await syncService.syncNow('macos');
+    const status = await syncService.macosStatus();
+
+    expect(result.status).toBe('unsupported');
+    expect(result.message).toMatch(/only available on macOS/);
+    expect(result.status).not.toBe('synced');
+    expect(status.supported).toBe(false);
+    expect(status.connected).toBe(false);
+    expect((await syncService.listTaskStates(task.id))[0].sync_status).toBe('pending');
+    await expect(syncService.requestMacosAccess()).rejects.toThrow(/macOS/);
   });
 });
 

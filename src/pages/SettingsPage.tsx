@@ -7,6 +7,8 @@ import { AppUpdateInfo, InstallUpdateResult, UpdateStatus } from '../types/updat
 import { SyncAccount, SyncProvider } from '../types/task';
 import { minCockpitOpacity, maxCockpitOpacity } from '../utils/cockpitTransparency';
 import { googleActions, googleConnectionPhase, isDesktopRuntime } from '../utils/googleSync';
+import { macosActions, macosConnectionPhase, macosPermissionHint } from '../utils/macosSync';
+import { MacosCalendarConnection } from '../types/task';
 
 const providerLabels: Record<SyncProvider, string> = {
   feishu: '飞书日历',
@@ -17,7 +19,7 @@ const providerLabels: Record<SyncProvider, string> = {
 
 const providerDescriptions: Record<SyncProvider, string> = {
   feishu: '优先级最高。需要 OAuth 应用凭证后启用真实同步。',
-  macos: '本机日历桥接。需要系统日历授权后启用真实同步。',
+  macos: '仅 macOS。授权完整日历访问后，按任务勾选与「日历」双向同步。',
   wecom: '需要企业微信 CorpID 和 OAuth 配置。',
   google: '桌面端通过 PKCE 授权后，按任务勾选与 Google Calendar 双向同步。',
 };
@@ -39,6 +41,10 @@ export function SettingsPage() {
     disconnectGoogle,
     syncNow,
     googleBusy,
+    macosConnection,
+    macosBusy,
+    saveMacosCalendar,
+    requestMacosAccess,
   } = useSettingsStore();
   const { setDurationMinutes } = usePomodoroStore();
   const {
@@ -167,6 +173,21 @@ export function SettingsPage() {
                   onSave={(input) => void saveGoogleSettings(input).catch(() => undefined)}
                   onConnect={() => void connectGoogle().catch(() => undefined)}
                   onDisconnect={() => void disconnectGoogle().catch(() => undefined)}
+                  onSync={() => void syncNow(account.provider)}
+                />
+              ) : account.provider === 'macos' ? (
+                <MacosSyncRow
+                  key={account.provider}
+                  account={account}
+                  connection={macosConnection}
+                  busy={macosBusy}
+                  onToggle={(enabled) => void toggleSyncAccount(account.provider, enabled)}
+                  onSelectCalendar={(calendarId, calendarName) => void saveMacosCalendar({
+                    calendarId,
+                    calendarName,
+                    enabled: account.enabled,
+                  }).catch(() => undefined)}
+                  onRequestAccess={() => void requestMacosAccess().catch(() => undefined)}
                   onSync={() => void syncNow(account.provider)}
                 />
               ) : (
@@ -422,6 +443,104 @@ function parseGoogleConfig(config?: string): { clientId: string; calendarId: str
   }
 }
 
+function MacosSyncRow({
+  account,
+  connection,
+  busy,
+  onToggle,
+  onSelectCalendar,
+  onRequestAccess,
+  onSync,
+}: {
+  account: SyncAccount;
+  connection: MacosCalendarConnection | null;
+  busy: 'idle' | 'requesting' | 'syncing';
+  onToggle: (enabled: boolean) => void;
+  onSelectCalendar: (calendarId: string, calendarName: string) => void;
+  onRequestAccess: () => void;
+  onSync: () => void;
+}) {
+  const supported = connection?.supported ?? false;
+  const permission = connection?.permission ?? 'unsupported';
+  const phase = macosConnectionPhase({
+    supported,
+    enabled: account.enabled,
+    permission,
+    status: connection?.status ?? account.status,
+    busy,
+  });
+  const actions = macosActions(phase);
+  const calendars = connection?.calendars ?? [];
+  const calendarId = connection?.calendar_id ?? '';
+  const hint = macosPermissionHint(permission);
+  const selectedName = calendars.find((calendar) => calendar.id === calendarId)?.name
+    ?? connection?.calendar_name
+    ?? 'Calendar';
+
+  return (
+    <div className="grid gap-3 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-slate-900">{providerLabels.macos}</p>
+            <span className="rounded bg-slate-100/90 px-2 py-0.5 text-xs text-slate-500">
+              {statusLabel(connection?.status ?? account.status)}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">{providerDescriptions.macos}</p>
+        </div>
+        <input
+          type="checkbox"
+          className="toggle toggle-primary"
+          checked={account.enabled}
+          onChange={(event) => onToggle(event.target.checked)}
+          aria-label="macOS 日历启用"
+        />
+      </div>
+      {phase === 'macos_only' && (
+        <div className="rounded-md bg-slate-100/90 px-3 py-2 text-sm text-slate-600">
+          macOS 日历同步只能在 macOS 上使用。当前系统不会执行同步，也不会显示为已成功。
+        </div>
+      )}
+      {phase !== 'macos_only' && hint && phase === 'needs_auth' && (
+        <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">{hint}</div>
+      )}
+      {connection?.last_error && phase !== 'macos_only' && phase !== 'needs_auth' && phase !== 'authenticated' && (
+        <div className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{connection.last_error}</div>
+      )}
+      <label className="form-control">
+        <span className="label-text mb-1 text-slate-500">日历</span>
+        <select
+          className="select select-bordered select-sm border-slate-200 bg-white/90"
+          value={calendarId}
+          disabled={!supported || permission !== 'full_access' || calendars.length === 0}
+          onChange={(event) => {
+            const nextId = event.target.value;
+            const nextName = calendars.find((calendar) => calendar.id === nextId)?.name ?? selectedName;
+            onSelectCalendar(nextId, nextName);
+          }}
+        >
+          {calendars.length === 0 && (
+            <option value={calendarId}>{supported ? '授权后可选择日历' : selectedName}</option>
+          )}
+          {calendars.length > 0 && calendarId === '' && <option value="">默认日历</option>}
+          {calendars.map((calendar) => (
+            <option key={calendar.id} value={calendar.id}>{calendar.name}</option>
+          ))}
+        </select>
+      </label>
+      <div className="flex flex-wrap justify-end gap-2">
+        <button className="btn btn-sm" onClick={onRequestAccess} disabled={!actions.requestAccess || busy !== 'idle'}>
+          {busy === 'requesting' ? '请求中...' : '请求日历权限'}
+        </button>
+        <button className="btn btn-sm btn-primary" onClick={onSync} disabled={!actions.sync || busy !== 'idle'}>
+          {busy === 'syncing' ? '同步中...' : '立即同步'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SyncProviderRow({
   account,
   onToggle,
@@ -484,6 +603,7 @@ function statusLabel(status: string): string {
     authenticated: '已连接',
     synced: '已同步',
     error: '错误',
+    unsupported: '仅 macOS',
   }[status] ?? status;
 }
 

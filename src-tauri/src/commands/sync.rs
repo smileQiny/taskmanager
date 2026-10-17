@@ -1,11 +1,13 @@
 use tauri::State;
 
 use crate::models::sync::{
-    GoogleConnection, ResolveSyncConflictInput, SaveGoogleSettingsInput, SetTaskSyncInput,
-    SyncAccount, SyncRunResult, TaskSyncState, UpsertSyncAccountInput,
+    GoogleConnection, MacosCalendarConnection, ResolveSyncConflictInput, SaveGoogleSettingsInput,
+    SaveMacosCalendarSettingsInput, SetTaskSyncInput, SyncAccount, SyncRunResult, TaskSyncState,
+    UpsertSyncAccountInput,
 };
 use crate::modules::google_calendar::{self, HttpCalendar};
 use crate::modules::google_oauth::{interactive_authorization, refresh_access_token};
+use crate::modules::macos_calendar;
 use crate::modules::sync as sync_module;
 use crate::modules::token_store::{GoogleTokens, TokenStore};
 use crate::AppState;
@@ -54,6 +56,36 @@ pub fn upsert_sync_account(
             .find(|account| account.provider == google_calendar::GOOGLE_PROVIDER)
             .ok_or_else(|| "google account missing".to_string());
     }
+    if input.provider == macos_calendar::MACOS_PROVIDER {
+        let current = sync_module::list_accounts(&conn)
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .find(|account| account.provider == macos_calendar::MACOS_PROVIDER);
+        let config = macos_calendar::parse_config(
+            input.config.as_deref().or(current
+                .as_ref()
+                .and_then(|account| account.config.as_deref())),
+        );
+        macos_calendar::save_settings(
+            &conn,
+            &SaveMacosCalendarSettingsInput {
+                calendar_id: Some(config.calendar_id),
+                calendar_name: Some(config.calendar_name),
+                enabled: Some(input.enabled),
+            },
+            current
+                .as_ref()
+                .map(|account| account.enabled)
+                .unwrap_or(false),
+            macos_calendar::live_access(),
+        )
+        .map_err(|e| e.to_string())?;
+        return sync_module::list_accounts(&conn)
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .find(|account| account.provider == macos_calendar::MACOS_PROVIDER)
+            .ok_or_else(|| "macos account missing".to_string());
+    }
     sync_module::upsert_account(&conn, input).map_err(|e| e.to_string())
 }
 
@@ -62,11 +94,14 @@ pub async fn sync_provider_now(
     state: State<'_, AppState>,
     provider: String,
 ) -> Result<SyncRunResult, String> {
-    if provider != google_calendar::GOOGLE_PROVIDER {
-        let conn = state.db.lock().map_err(|e| e.to_string())?;
-        return sync_module::sync_now(&conn, provider).map_err(|e| e.to_string());
+    if provider == google_calendar::GOOGLE_PROVIDER {
+        return sync_google(&state).await;
     }
-    sync_google(&state).await
+    if provider == macos_calendar::MACOS_PROVIDER {
+        return sync_macos(&state).await;
+    }
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    sync_module::sync_now(&conn, provider).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -162,6 +197,9 @@ pub async fn resolve_task_sync_conflict(
     state: State<'_, AppState>,
     input: ResolveSyncConflictInput,
 ) -> Result<SyncRunResult, String> {
+    if input.provider == macos_calendar::MACOS_PROVIDER {
+        return resolve_macos(&state, input).await;
+    }
     if input.provider != google_calendar::GOOGLE_PROVIDER {
         return Err(format!("{} sync is not implemented", input.provider));
     }
@@ -299,4 +337,197 @@ fn google_account(conn: &rusqlite::Connection) -> Result<SyncAccount, String> {
 
 fn local_offset_seconds() -> i32 {
     chrono::Local::now().offset().local_minus_utc()
+}
+
+#[tauri::command]
+pub fn macos_calendar_status(state: State<AppState>) -> Result<MacosCalendarConnection, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let account = macos_account(&conn)?;
+    let access = macos_calendar::live_access();
+    let calendars = list_macos_calendars().map_err(|e| e.to_string())?;
+    Ok(macos_calendar::connection_view(&account, access, calendars))
+}
+
+#[tauri::command]
+pub fn save_macos_calendar_settings(
+    state: State<AppState>,
+    input: SaveMacosCalendarSettingsInput,
+) -> Result<MacosCalendarConnection, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let account = macos_account(&conn)?;
+    macos_calendar::save_settings(
+        &conn,
+        &input,
+        account.enabled,
+        macos_calendar::live_access(),
+    )
+    .map_err(|e| e.to_string())?;
+    let account = macos_account(&conn)?;
+    let access = macos_calendar::live_access();
+    let calendars = list_macos_calendars().map_err(|e| e.to_string())?;
+    Ok(macos_calendar::connection_view(&account, access, calendars))
+}
+
+#[tauri::command]
+pub fn request_macos_calendar_access(
+    state: State<AppState>,
+) -> Result<MacosCalendarConnection, String> {
+    if !macos_calendar::platform_supported() {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let account = macos_account(&conn)?;
+        return Ok(macos_calendar::connection_view(
+            &account,
+            macos_calendar::CalendarAccess::Unsupported,
+            Vec::new(),
+        ));
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let access =
+            crate::modules::macos_eventkit::request_full_access().map_err(|e| e.to_string())?;
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let account = macos_account(&conn)?;
+        macos_calendar::save_settings(
+            &conn,
+            &SaveMacosCalendarSettingsInput {
+                calendar_id: None,
+                calendar_name: None,
+                enabled: Some(true),
+            },
+            account.enabled,
+            access,
+        )
+        .map_err(|e| e.to_string())?;
+        let account = macos_account(&conn)?;
+        let calendars = list_macos_calendars().map_err(|e| e.to_string())?;
+        return Ok(macos_calendar::connection_view(&account, access, calendars));
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = state;
+        Err("macOS Calendar sync is only available on macOS.".to_string())
+    }
+}
+
+async fn sync_macos(state: &State<'_, AppState>) -> Result<SyncRunResult, String> {
+    if !macos_calendar::platform_supported() {
+        return Ok(macos_calendar::unsupported_result());
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = state;
+        return Ok(macos_calendar::unsupported_result());
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let (calendar_id, calendar_name, snapshots) = {
+            let conn = state.db.lock().map_err(|e| e.to_string())?;
+            let account = macos_account(&conn)?;
+            let access = macos_calendar::live_access();
+            if let Some(blocked) = macos_calendar::blocked_result(&conn, &account, access)
+                .map_err(|e| e.to_string())?
+            {
+                return Ok(blocked);
+            }
+            let config = macos_calendar::parse_config(account.config.as_deref());
+            let snapshots =
+                google_calendar::load_provider_snapshots(&conn, macos_calendar::MACOS_PROVIDER)
+                    .map_err(|e| e.to_string())?;
+            (config.calendar_id, config.calendar_name, snapshots)
+        };
+        let api =
+            crate::modules::macos_eventkit::EventKitApi::new(calendar_id.clone(), calendar_name);
+        let outcomes = google_calendar::compute_outcomes(
+            &api,
+            &calendar_id,
+            local_offset_seconds(),
+            snapshots,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        google_calendar::apply_provider_outcomes(
+            &conn,
+            macos_calendar::MACOS_PROVIDER,
+            "macOS Calendar",
+            &outcomes,
+        )
+        .map_err(|e| e.to_string())
+    }
+}
+
+async fn resolve_macos(
+    state: &State<'_, AppState>,
+    input: ResolveSyncConflictInput,
+) -> Result<SyncRunResult, String> {
+    if !macos_calendar::platform_supported() {
+        return Err("macOS Calendar sync is only available on macOS.".to_string());
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (state, input);
+        return Err("macOS Calendar sync is only available on macOS.".to_string());
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let (calendar_id, calendar_name, snapshot) = {
+            let conn = state.db.lock().map_err(|e| e.to_string())?;
+            let account = macos_account(&conn)?;
+            let access = macos_calendar::live_access();
+            if macos_calendar::blocked_result(&conn, &account, access)
+                .map_err(|e| e.to_string())?
+                .is_some()
+            {
+                return Err(
+                    "macOS Calendar access is required before resolving a conflict.".to_string(),
+                );
+            }
+            let config = macos_calendar::parse_config(account.config.as_deref());
+            let snapshot =
+                google_calendar::load_provider_snapshots(&conn, macos_calendar::MACOS_PROVIDER)
+                    .map_err(|e| e.to_string())?
+                    .into_iter()
+                    .find(|item| item.task.id == input.task_id)
+                    .ok_or_else(|| "task is not opted in to macOS Calendar".to_string())?;
+            (config.calendar_id, config.calendar_name, snapshot)
+        };
+        let api =
+            crate::modules::macos_eventkit::EventKitApi::new(calendar_id.clone(), calendar_name);
+        let outcome = google_calendar::plan_resolution(
+            &api,
+            &calendar_id,
+            local_offset_seconds(),
+            snapshot,
+            &input.strategy,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        google_calendar::apply_provider_outcomes(
+            &conn,
+            macos_calendar::MACOS_PROVIDER,
+            "macOS Calendar",
+            &[outcome],
+        )
+        .map_err(|e| e.to_string())
+    }
+}
+
+fn list_macos_calendars() -> Result<Vec<crate::models::sync::MacosCalendarInfo>, anyhow::Error> {
+    #[cfg(target_os = "macos")]
+    {
+        return crate::modules::macos_eventkit::list_writable_calendars();
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok(Vec::new())
+    }
+}
+
+fn macos_account(conn: &rusqlite::Connection) -> Result<SyncAccount, String> {
+    sync_module::list_accounts(conn)
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .find(|account| account.provider == macos_calendar::MACOS_PROVIDER)
+        .ok_or_else(|| "macos account missing".to_string())
 }
