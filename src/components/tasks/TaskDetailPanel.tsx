@@ -32,7 +32,7 @@ const syncProviders: Array<{ provider: SyncProvider; label: string }> = [
 export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
   const { createTask, updateTask, deleteTask, closePanel } = useTaskStore();
   const syncRevision = useSettingsStore((state) => state.syncRevision);
-  const resolveGoogleConflict = useSettingsStore((state) => state.resolveGoogleConflict);
+  const resolveSyncConflict = useSettingsStore((state) => state.resolveSyncConflict);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<Task['status']>('todo');
@@ -234,26 +234,36 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                           onChange={(event) => void setTaskSync(task.id, provider, event.target.checked, setSyncStates, setSyncError)}
                         />
                       </label>
-                      {provider === 'google' && state?.sync_status === 'conflict' && (
+                      {(provider === 'google' || provider === 'macos') && state?.sync_status === 'conflict' && (
                         <div className="mt-2 space-y-2">
-                          <p className="text-xs text-amber-700">本地和 Google 都改过，未自动覆盖。</p>
+                          <p className="text-xs text-amber-700">
+                            {provider === 'google'
+                              ? '本地和 Google 都改过，未自动覆盖。'
+                              : '本地和 macOS 日历都改过，未自动覆盖。'}
+                          </p>
                           <div className="flex gap-2">
                             <button
                               type="button"
                               className="btn btn-xs"
-                              onClick={() => void resolveGoogleConflict(task.id, 'local').catch((error) => setSyncError(String(error)))}
+                              onClick={() => void resolveSyncConflict(provider, task.id, 'local').catch((error) => setSyncError(String(error)))}
                             >
                               保留本地
                             </button>
                             <button
                               type="button"
                               className="btn btn-xs"
-                              onClick={() => void resolveGoogleConflict(task.id, 'remote').catch((error) => setSyncError(String(error)))}
+                              onClick={() => void resolveSyncConflict(provider, task.id, 'remote').catch((error) => setSyncError(String(error)))}
                             >
-                              采用 Google
+                              {provider === 'google' ? '采用 Google' : '采用日历'}
                             </button>
                           </div>
                         </div>
+                      )}
+                      {provider === 'macos' && state?.sync_status === 'needs_auth' && (
+                        <p className="mt-2 text-xs text-amber-700">需要 macOS 日历的完整访问权限。</p>
+                      )}
+                      {provider === 'macos' && state?.sync_status === 'error' && (
+                        <p className="mt-2 text-xs text-rose-600">同步失败。请在设置中检查日历权限后重试。</p>
                       )}
                     </div>
                   );

@@ -290,16 +290,20 @@ pub fn decide_sync_action(
 }
 
 pub fn load_google_snapshots(conn: &Connection) -> Result<Vec<TaskSnapshot>> {
+    load_provider_snapshots(conn, GOOGLE_PROVIDER)
+}
+
+pub fn load_provider_snapshots(conn: &Connection, provider: &str) -> Result<Vec<TaskSnapshot>> {
     let mut stmt = conn.prepare(
         "SELECT tasks.id, tasks.title, tasks.description, tasks.status, tasks.priority,
                 tasks.start_time, tasks.end_time, tasks.all_day, tasks.recurrence, tasks.tags,
                 tasks.created_at, tasks.updated_at, sync_mappings.external_id, sync_mappings.last_synced
          FROM sync_mappings
          JOIN tasks ON tasks.id = sync_mappings.task_id
-         WHERE sync_mappings.provider = 'google'",
+         WHERE sync_mappings.provider = ?1",
     )?;
     let snapshots = stmt
-        .query_map([], |row| {
+        .query_map(params![provider], |row| {
             Ok(TaskSnapshot {
                 task: Task {
                     id: row.get(0)?,
@@ -344,6 +348,15 @@ pub async fn compute_outcomes(
 }
 
 pub fn apply_outcomes(conn: &Connection, outcomes: &[SyncOutcome]) -> Result<SyncRunResult> {
+    apply_provider_outcomes(conn, GOOGLE_PROVIDER, "Google Calendar", outcomes)
+}
+
+pub fn apply_provider_outcomes(
+    conn: &Connection,
+    provider: &str,
+    label: &str,
+    outcomes: &[SyncOutcome],
+) -> Result<SyncRunResult> {
     let mut synced = 0_i64;
     let mut conflicts = 0_i64;
     let mut errors = 0_i64;
@@ -357,21 +370,21 @@ pub fn apply_outcomes(conn: &Connection, outcomes: &[SyncOutcome]) -> Result<Syn
                 remote_updated,
             } => {
                 let last_synced = (*local_updated).max(*remote_updated);
-                set_mapping(conn, task_id, external_id, last_synced, "synced")?;
+                set_mapping(conn, provider, task_id, external_id, last_synced, "synced")?;
                 synced += 1;
             }
             SyncOutcome::Pull { task, remote } => {
                 let local_updated = apply_pull(conn, task, remote)?;
                 let last_synced = local_updated.max(remote.updated_unix);
-                set_mapping(conn, &task.id, &remote.id, last_synced, "synced")?;
+                set_mapping(conn, provider, &task.id, &remote.id, last_synced, "synced")?;
                 synced += 1;
             }
             SyncOutcome::Conflict { task_id } => {
-                set_mapping_status(conn, task_id, "conflict")?;
+                set_mapping_status(conn, provider, task_id, "conflict")?;
                 conflicts += 1;
             }
             SyncOutcome::Failed { task_id, message } => {
-                set_mapping_status(conn, task_id, "error")?;
+                set_mapping_status(conn, provider, task_id, "error")?;
                 errors += 1;
                 messages.push(format!("{task_id}: {message}"));
             }
@@ -380,30 +393,31 @@ pub fn apply_outcomes(conn: &Connection, outcomes: &[SyncOutcome]) -> Result<Syn
     let (status, message) = if conflicts > 0 {
         (
             "conflict",
-            format!("Google Calendar sync finished with {conflicts} conflict(s). Local and Google edits were both kept."),
+            if provider == GOOGLE_PROVIDER {
+                format!("Google Calendar sync finished with {conflicts} conflict(s). Local and Google edits were both kept.")
+            } else {
+                format!("{label} sync finished with {conflicts} conflict(s). Local and {label} edits were both kept.")
+            },
         )
     } else if errors > 0 {
         (
             "error",
             format!(
-                "Google Calendar sync finished with {errors} error(s). {}",
+                "{label} sync finished with {errors} error(s). {}",
                 messages.join("; ")
             ),
         )
     } else {
-        (
-            "synced",
-            format!("Google Calendar sync updated {synced} task(s)."),
-        )
+        ("synced", format!("{label} sync updated {synced} task(s)."))
     };
     let feedback = if conflicts > 0 || errors > 0 {
         Some(message.as_str())
     } else {
         None
     };
-    set_account_feedback(conn, "authenticated", feedback)?;
+    set_provider_feedback(conn, provider, "authenticated", feedback)?;
     Ok(SyncRunResult {
-        provider: GOOGLE_PROVIDER.to_string(),
+        provider: provider.to_string(),
         status: status.to_string(),
         message,
         affected_tasks: synced + conflicts + errors,
@@ -525,7 +539,7 @@ pub fn blocked_result(
     }
     let config = parse_public_google_config(account.config.as_deref());
     if config.client_id.is_empty() || !has_tokens {
-        let affected = mark_mappings(conn, "needs_auth")?;
+        let affected = mark_mappings(conn, GOOGLE_PROVIDER, "needs_auth")?;
         let message = if config.client_id.is_empty() {
             "Google Calendar sync requires an OAuth Client ID before live sync."
         } else {
@@ -543,7 +557,7 @@ pub fn blocked_result(
 }
 
 pub fn mark_needs_auth(conn: &Connection, message: &str) -> Result<SyncRunResult> {
-    let affected = mark_mappings(conn, "needs_auth")?;
+    let affected = mark_mappings(conn, GOOGLE_PROVIDER, "needs_auth")?;
     set_account_feedback(conn, "needs_auth", Some(message))?;
     Ok(SyncRunResult {
         provider: GOOGLE_PROVIDER.to_string(),
@@ -667,15 +681,25 @@ pub fn set_account_feedback(
     status: &str,
     last_error: Option<&str>,
 ) -> Result<()> {
+    set_provider_feedback(conn, GOOGLE_PROVIDER, status, last_error)
+}
+
+pub fn set_provider_feedback(
+    conn: &Connection,
+    provider: &str,
+    status: &str,
+    last_error: Option<&str>,
+) -> Result<()> {
     conn.execute(
         "UPDATE sync_accounts SET status = ?2, last_error = ?3 WHERE provider = ?1",
-        params![GOOGLE_PROVIDER, status, last_error],
+        params![provider, status, last_error],
     )?;
     Ok(())
 }
 
 fn set_mapping(
     conn: &Connection,
+    provider: &str,
     task_id: &str,
     external_id: &str,
     last_synced: i64,
@@ -685,23 +709,28 @@ fn set_mapping(
         "UPDATE sync_mappings
          SET external_id = ?3, last_synced = ?4, sync_status = ?5
          WHERE task_id = ?1 AND provider = ?2",
-        params![task_id, GOOGLE_PROVIDER, external_id, last_synced, status],
+        params![task_id, provider, external_id, last_synced, status],
     )?;
     Ok(())
 }
 
-fn set_mapping_status(conn: &Connection, task_id: &str, status: &str) -> Result<()> {
+fn set_mapping_status(
+    conn: &Connection,
+    provider: &str,
+    task_id: &str,
+    status: &str,
+) -> Result<()> {
     conn.execute(
         "UPDATE sync_mappings SET sync_status = ?3 WHERE task_id = ?1 AND provider = ?2",
-        params![task_id, GOOGLE_PROVIDER, status],
+        params![task_id, provider, status],
     )?;
     Ok(())
 }
 
-fn mark_mappings(conn: &Connection, status: &str) -> Result<i64> {
+fn mark_mappings(conn: &Connection, provider: &str, status: &str) -> Result<i64> {
     let rows = conn.execute(
         "UPDATE sync_mappings SET sync_status = ?2 WHERE provider = ?1",
-        params![GOOGLE_PROVIDER, status],
+        params![provider, status],
     )?;
     Ok(rows as i64)
 }

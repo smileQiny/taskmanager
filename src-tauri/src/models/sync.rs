@@ -67,3 +67,28 @@ pub struct ResolveSyncConflictInput {
     pub provider: String,
     pub strategy: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MacosCalendarInfo {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MacosCalendarConnection {
+    pub supported: bool,
+    pub status: String,
+    pub connected: bool,
+    pub permission: String,
+    pub calendar_id: String,
+    pub calendar_name: String,
+    pub calendars: Vec<MacosCalendarInfo>,
+    pub last_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveMacosCalendarSettingsInput {
+    pub calendar_id: Option<String>,
+    pub calendar_name: Option<String>,
+    pub enabled: Option<bool>,
+}

@@ -1,6 +1,9 @@
 pub mod db;
 pub mod google_calendar;
 pub mod google_oauth;
+pub mod macos_calendar;
+#[cfg(target_os = "macos")]
+pub mod macos_eventkit;
 pub mod pomodoro;
 pub mod settings;
 pub mod sync;

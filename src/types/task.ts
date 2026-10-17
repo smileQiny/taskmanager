@@ -148,3 +148,25 @@ export interface ResolveSyncConflictInput {
   provider: SyncProvider;
   strategy: 'local' | 'remote';
 }
+
+export interface MacosCalendarInfo {
+  id: string;
+  name: string;
+}
+
+export interface MacosCalendarConnection {
+  supported: boolean;
+  status: string;
+  connected: boolean;
+  permission: 'unsupported' | 'not_determined' | 'restricted' | 'denied' | 'write_only' | 'full_access' | string;
+  calendar_id: string;
+  calendar_name: string;
+  calendars: MacosCalendarInfo[];
+  last_error?: string | null;
+}
+
+export interface SaveMacosCalendarSettingsInput {
+  calendar_id?: string;
+  calendar_name?: string;
+  enabled?: boolean;
+}
