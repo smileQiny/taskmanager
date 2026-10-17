@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildUpdaterManifest } from './generate-updater-manifest.mjs';
 
@@ -32,6 +33,12 @@ describe('generate updater manifest', () => {
       signature: 'signature:Task.Manager_x64.app.tar.gz.sig',
     });
     expect(manifest.platforms['darwin-x86_64-app']).toEqual(manifest.platforms['darwin-x86_64']);
+  });
+
+  it('does not start with a shebang or UTF-8 BOM', () => {
+    const source = readFileSync(new URL('./generate-updater-manifest.mjs', import.meta.url));
+    expect(source.subarray(0, 3).equals(Buffer.from([0xef, 0xbb, 0xbf]))).toBe(false);
+    expect(source.subarray(0, 2).toString('utf8')).not.toBe('#!');
   });
 
   it('fails when a required updater signature is missing', async () => {
