@@ -205,13 +205,17 @@ unsafe fn apply_draft(
     match (&draft.start, &draft.end) {
         (EventMoment::Date(start), EventMoment::Date(end)) => {
             event.setAllDay(true);
-            event.setStartDate(Some(&local_midnight(start)?));
-            event.setEndDate(Some(&local_midnight(end)?));
+            let start_date = local_midnight(start)?;
+            let end_date = local_midnight(end)?;
+            event.setStartDate(Some(&start_date));
+            event.setEndDate(Some(&end_date));
         }
         (EventMoment::DateTime(start), EventMoment::DateTime(end)) => {
             event.setAllDay(false);
-            event.setStartDate(Some(&unix_date(parse_unix(start)?)?));
-            event.setEndDate(Some(&unix_date(parse_unix(end)?)?));
+            let start_date = unix_date(parse_unix(start)?)?;
+            let end_date = unix_date(parse_unix(end)?)?;
+            event.setStartDate(Some(&start_date));
+            event.setEndDate(Some(&end_date));
         }
         _ => return Err(anyhow!("event draft has mixed date bounds")),
     }
@@ -290,11 +294,13 @@ fn local_midnight(date: &str) -> Result<Retained<NSDate>> {
         .from_local_datetime(&naive)
         .single()
         .ok_or_else(|| anyhow!("all-day date is ambiguous in the local timezone"))?;
-    Ok(unsafe { NSDate::dateWithTimeIntervalSince1970(local.timestamp() as f64) })
+    Ok(NSDate::dateWithTimeIntervalSince1970(
+        local.timestamp() as f64
+    ))
 }
 
 fn unix_date(unix: i64) -> Result<Retained<NSDate>> {
-    Ok(unsafe { NSDate::dateWithTimeIntervalSince1970(unix as f64) })
+    Ok(NSDate::dateWithTimeIntervalSince1970(unix as f64))
 }
 
 fn parse_unix(value: &str) -> Result<i64> {
