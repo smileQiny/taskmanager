@@ -61,6 +61,7 @@ pub struct TaskSnapshot {
     pub task: Task,
     pub external_id: String,
     pub last_synced: i64,
+    pub remote_hash: String,
 }
 
 #[derive(Debug, Clone)]
@@ -297,7 +298,8 @@ pub fn load_provider_snapshots(conn: &Connection, provider: &str) -> Result<Vec<
     let mut stmt = conn.prepare(
         "SELECT tasks.id, tasks.title, tasks.description, tasks.status, tasks.priority,
                 tasks.start_time, tasks.end_time, tasks.all_day, tasks.recurrence, tasks.tags,
-                tasks.created_at, tasks.updated_at, sync_mappings.external_id, sync_mappings.last_synced
+                tasks.created_at, tasks.updated_at, sync_mappings.external_id, sync_mappings.last_synced,
+                sync_mappings.remote_hash
          FROM sync_mappings
          JOIN tasks ON tasks.id = sync_mappings.task_id
          WHERE sync_mappings.provider = ?1",
@@ -321,6 +323,7 @@ pub fn load_provider_snapshots(conn: &Connection, provider: &str) -> Result<Vec<
                 },
                 external_id: row.get(12)?,
                 last_synced: row.get(13)?,
+                remote_hash: row.get(14)?,
             })
         })?
         .collect::<rusqlite::Result<Vec<_>>>()?;

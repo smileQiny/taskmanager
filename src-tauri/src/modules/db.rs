@@ -100,6 +100,12 @@ fn migrate(conn: &Connection) -> Result<()> {
     add_column_if_missing(conn, "pomodoro_sessions", "note", "TEXT")?;
     add_column_if_missing(conn, "pomodoro_sessions", "task_id", "TEXT")?;
     add_column_if_missing(conn, "sync_accounts", "last_error", "TEXT")?;
+    add_column_if_missing(
+        conn,
+        "sync_mappings",
+        "remote_hash",
+        "TEXT NOT NULL DEFAULT ''",
+    )?;
     Ok(())
 }
 

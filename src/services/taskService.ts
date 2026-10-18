@@ -5,9 +5,11 @@ import {
   CreateTaskInput,
   PomodoroSession,
   PomodoroTimerSnapshot,
+  FeishuConnection,
   GoogleConnection,
   MacosCalendarConnection,
   ResolveSyncConflictInput,
+  SaveFeishuSettingsInput,
   SaveGoogleSettingsInput,
   SaveMacosCalendarSettingsInput,
   SyncAccount,
@@ -95,7 +97,9 @@ export const syncService = {
     : Promise.reject(new Error(
       input.provider === 'macos'
         ? 'macOS Calendar sync is only available on macOS.'
-        : 'Calendar sync conflict resolution is available in the desktop app only.',
+        : input.provider === 'feishu'
+          ? 'Feishu Calendar sync is available in the desktop app only.'
+          : 'Calendar sync conflict resolution is available in the desktop app only.',
     )),
   macosStatus: () => hasTauri
     ? invoke<MacosCalendarConnection>('macos_calendar_status')
@@ -106,6 +110,18 @@ export const syncService = {
   requestMacosAccess: () => hasTauri
     ? invoke<MacosCalendarConnection>('request_macos_calendar_access')
     : Promise.reject(new Error('macOS Calendar sync is only available on macOS.')),
+  feishuStatus: () => hasTauri
+    ? invoke<FeishuConnection>('feishu_connection_status')
+    : local(readLocalFeishuConnection),
+  saveFeishuSettings: (input: SaveFeishuSettingsInput) => hasTauri
+    ? invoke<FeishuConnection>('save_feishu_settings', { input })
+    : Promise.reject(new Error('Feishu Calendar sync is available in the desktop app only.')),
+  connectFeishu: () => hasTauri
+    ? invoke<FeishuConnection>('connect_feishu_calendar')
+    : Promise.reject(new Error('Feishu Calendar sync is available in the desktop app only.')),
+  disconnectFeishu: () => hasTauri
+    ? invoke<FeishuConnection>('disconnect_feishu_calendar')
+    : Promise.reject(new Error('Feishu Calendar sync is available in the desktop app only.')),
 };
 
 function local<T>(fn: () => T): Promise<T> {
@@ -285,6 +301,31 @@ function upsertLocalSyncAccount(input: UpsertSyncAccountInput): SyncAccount {
   return account;
 }
 
+function readLocalFeishuConnection(): FeishuConnection {
+  const account = readSyncAccounts().find((item) => item.provider === 'feishu');
+  let appId = '';
+  let calendarId = 'primary';
+  let domain = 'feishu';
+  try {
+    const parsed = JSON.parse(account?.config || '{}') as { app_id?: string; calendar_id?: string; domain?: string };
+    appId = parsed.app_id ?? '';
+    calendarId = parsed.calendar_id || 'primary';
+    domain = parsed.domain === 'lark' ? 'lark' : 'feishu';
+  } catch {
+    appId = '';
+  }
+  return {
+    status: 'not_configured',
+    connected: false,
+    app_id: appId,
+    calendar_id: calendarId,
+    domain,
+    has_app_secret: false,
+    redirect_uri: 'http://127.0.0.1:43821/callback',
+    last_error: 'Feishu Calendar sync is available in the desktop app only.',
+  };
+}
+
 function readLocalMacosConnection(): MacosCalendarConnection {
   const account = readSyncAccounts().find((item) => item.provider === 'macos');
   let calendarId = '';
@@ -323,6 +364,14 @@ function syncLocalProvider(provider: SyncProvider): SyncRunResult {
       provider,
       status: 'unsupported',
       message: 'macOS Calendar sync is only available on macOS.',
+      affected_tasks: 0,
+    };
+  }
+  if (provider === 'feishu') {
+    return {
+      provider,
+      status: 'error',
+      message: 'Feishu Calendar sync is available in the desktop app only.',
       affected_tasks: 0,
     };
   }

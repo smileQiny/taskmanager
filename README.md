@@ -12,7 +12,7 @@ Local-first desktop task manager built with Tauri 2, React 19, TypeScript, Rust,
 - Pomodoro workspace with local timer and completed session records.
 - Settings workspace with theme, default calendar view, local data path, and sync provider configuration.
 - Startup and manual signed updates from the latest GitHub Release.
-- Remote sync provider boundary for Feishu, macOS Calendar, WeCom, and Google Calendar. Feishu, macOS Calendar, and WeCom stay unimplemented stubs. Google Calendar can authorize on the desktop app and sync opted-in tasks.
+- Remote sync for opted-in tasks with Feishu/Lark Calendar, macOS Calendar, and Google Calendar. WeCom stays an unimplemented stub.
 
 ## Google Calendar
 
@@ -27,6 +27,34 @@ Google sync uses a desktop OAuth client, PKCE, and a loopback redirect on `127.0
 Opt in per task, then sync. If the same event changed both locally and in Google since the last sync, the task is marked as a conflict and neither side is overwritten until you keep the local task or the Google event.
 
 Content Security Policy tightening and Apple notarization are follow-ups. A custom URL scheme, multiple Google accounts, and importing unrelated Google events are also out of scope.
+
+## Feishu / Lark Calendar
+
+Feishu sync uses the Open Platform OAuth 2.0 code flow with PKCE and a fixed loopback redirect. Feishu apps are confidential clients, so the desktop flow sends both the PKCE verifier and the App Secret. Tokens and the App Secret stay in the OS keychain when it is available, otherwise in an encrypted local table. They are not returned to the frontend and must not be committed.
+
+Feishu calendar events do not expose an update timestamp. After the first successful sync, Task Manager stores a content fingerprint of the event. A later edit on only one side is copied across. If both the task and the Feishu event changed since that fingerprint, the task is marked as a conflict and neither side is overwritten until you keep the local task or the Feishu event.
+
+1. Open [Feishu Open Platform](https://open.feishu.cn/app) for Feishu China, or [Lark Developer](https://open.larksuite.com/app) for Lark international. Create an enterprise custom app.
+2. On Credentials & Basic Info, copy the App ID and App Secret.
+3. On Permissions & Scopes, enable these user-identity scopes, then publish a version so they take effect:
+   - `offline_access`
+   - `calendar:calendar:readonly`
+   - `calendar:calendar.event:read`
+   - `calendar:calendar.event:create`
+   - `calendar:calendar.event:update`
+4. On Security Settings, add this exact redirect URL:
+
+   ```text
+   http://127.0.0.1:43821/callback
+   ```
+
+   If the page shows a switch for refreshing `user_access_token`, turn it on and publish again. The redirect port is fixed because the console must whitelist the full callback URL; `localhost` is not the same URL as `127.0.0.1`.
+5. Make the app available to the Feishu or Lark account that will sync, and publish the app version.
+6. In Task Manager settings, choose 飞书 or Lark, paste the App ID and App Secret, and set the calendar ID to `primary` or a specific calendar ID. Choose Connect Feishu. Do not put these credentials in the repository.
+
+The requested scope string is `offline_access calendar:calendar:readonly calendar:calendar.event:read calendar:calendar.event:create calendar:calendar.event:update`. Authorization opens in the system browser and returns to the loopback redirect above. Opt in per task, then sync. The browser preview reports an explicit desktop-only error and does not mark the sync as successful. WeCom is still a stub.
+
+All-day events use an exclusive UTC end date, the same way Google events do. Recurrence is not synced.
 
 ## Development
 

@@ -7,8 +7,9 @@ import { AppUpdateInfo, InstallUpdateResult, UpdateStatus } from '../types/updat
 import { SyncAccount, SyncProvider } from '../types/task';
 import { minCockpitOpacity, maxCockpitOpacity } from '../utils/cockpitTransparency';
 import { googleActions, googleConnectionPhase, isDesktopRuntime } from '../utils/googleSync';
+import { feishuActions, feishuConnectionPhase, FEISHU_REDIRECT_URI } from '../utils/feishuSync';
 import { macosActions, macosConnectionPhase, macosPermissionHint } from '../utils/macosSync';
-import { MacosCalendarConnection } from '../types/task';
+import { FeishuConnection, MacosCalendarConnection } from '../types/task';
 
 const providerLabels: Record<SyncProvider, string> = {
   feishu: '飞书日历',
@@ -18,7 +19,7 @@ const providerLabels: Record<SyncProvider, string> = {
 };
 
 const providerDescriptions: Record<SyncProvider, string> = {
-  feishu: '优先级最高。需要 OAuth 应用凭证后启用真实同步。',
+  feishu: '桌面端通过 PKCE 和固定回环地址授权后，按任务勾选与飞书或 Lark 日历双向同步。',
   macos: '仅 macOS。授权完整日历访问后，按任务勾选与「日历」双向同步。',
   wecom: '需要企业微信 CorpID 和 OAuth 配置。',
   google: '桌面端通过 PKCE 授权后，按任务勾选与 Google Calendar 双向同步。',
@@ -45,6 +46,11 @@ export function SettingsPage() {
     macosBusy,
     saveMacosCalendar,
     requestMacosAccess,
+    feishuConnection,
+    feishuBusy,
+    saveFeishuSettings,
+    connectFeishu,
+    disconnectFeishu,
   } = useSettingsStore();
   const { setDurationMinutes } = usePomodoroStore();
   const {
@@ -164,7 +170,19 @@ export function SettingsPage() {
               </div>
             )}
             <div className="mt-4 divide-y divide-slate-100">
-              {syncAccounts.map((account) => account.provider === 'google' ? (
+              {syncAccounts.map((account) => account.provider === 'feishu' ? (
+                <FeishuSyncRow
+                  key={account.provider}
+                  account={account}
+                  connection={feishuConnection}
+                  busy={feishuBusy}
+                  onToggle={(enabled) => void toggleSyncAccount(account.provider, enabled)}
+                  onSave={(input) => void saveFeishuSettings(input).catch(() => undefined)}
+                  onConnect={(input) => void connectFeishu(input).catch(() => undefined)}
+                  onDisconnect={() => void disconnectFeishu().catch(() => undefined)}
+                  onSync={() => void syncNow(account.provider)}
+                />
+              ) : account.provider === 'google' ? (
                 <GoogleSyncRow
                   key={account.provider}
                   account={account}
@@ -315,6 +333,181 @@ function VersionMetric({
       <p className={`mt-1 text-lg font-semibold ${accent ? 'text-emerald-700' : 'text-slate-900'}`}>{value}</p>
     </div>
   );
+}
+
+function FeishuSyncRow({
+  account,
+  connection,
+  busy,
+  onToggle,
+  onSave,
+  onConnect,
+  onDisconnect,
+  onSync,
+}: {
+  account: SyncAccount;
+  connection: FeishuConnection | null;
+  busy: 'idle' | 'connecting' | 'syncing';
+  onToggle: (enabled: boolean) => void;
+  onSave: (input: { appId: string; calendarId: string; domain: string; appSecret?: string }) => void;
+  onConnect: (input: { appId: string; calendarId: string; domain: string; appSecret?: string }) => void;
+  onDisconnect: () => void;
+  onSync: () => void;
+}) {
+  const desktop = isDesktopRuntime();
+  const parsed = parseFeishuConfig(connection, account.config);
+  const [appId, setAppId] = useState(parsed.appId);
+  const [calendarId, setCalendarId] = useState(parsed.calendarId);
+  const [domain, setDomain] = useState(parsed.domain);
+  const [secretDraft, setSecretDraft] = useState('');
+  useEffect(() => {
+    setAppId(parsed.appId);
+    setCalendarId(parsed.calendarId);
+    setDomain(parsed.domain);
+  }, [parsed.appId, parsed.calendarId, parsed.domain]);
+  const phase = feishuConnectionPhase({
+    desktop,
+    appId,
+    hasAppSecret: Boolean(connection?.has_app_secret) || secretDraft.trim().length > 0,
+    status: connection?.status ?? account.status,
+    busy,
+  });
+  const actions = feishuActions(phase);
+  const redirectUri = connection?.redirect_uri || FEISHU_REDIRECT_URI;
+  const save = (secret?: string) => onSave({
+    appId,
+    calendarId,
+    domain,
+    appSecret: secret,
+  });
+
+  return (
+    <div className="grid gap-3 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-slate-900">{providerLabels.feishu}</p>
+            <span className="rounded bg-slate-100/90 px-2 py-0.5 text-xs text-slate-500">
+              {statusLabel(connection?.status ?? account.status)}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">{providerDescriptions.feishu}</p>
+        </div>
+        <input
+          type="checkbox"
+          className="toggle toggle-primary"
+          checked={account.enabled}
+          onChange={(event) => onToggle(event.target.checked)}
+          aria-label="飞书日历启用"
+        />
+      </div>
+      {phase === 'desktop_only' && (
+        <div className="rounded-md bg-slate-100/90 px-3 py-2 text-sm text-slate-600">
+          浏览器预览不能连接飞书。请在桌面版中授权。当前环境不会把同步显示为成功。
+        </div>
+      )}
+      {connection?.last_error && phase !== 'desktop_only' && (
+        <div className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{connection.last_error}</div>
+      )}
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">App ID</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            value={appId}
+            onChange={(event) => setAppId(event.target.value)}
+            onBlur={() => save()}
+            placeholder="cli_xxx"
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">日历 ID</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            value={calendarId}
+            onChange={(event) => setCalendarId(event.target.value)}
+            onBlur={() => save()}
+            placeholder="primary"
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">开放平台</span>
+          <select
+            className="select select-bordered select-sm border-slate-200 bg-white/90"
+            value={domain}
+            onChange={(event) => {
+              const next = event.target.value;
+              setDomain(next);
+              onSave({ appId, calendarId, domain: next });
+            }}
+          >
+            <option value="feishu">飞书（open.feishu.cn）</option>
+            <option value="lark">Lark（open.larksuite.com）</option>
+          </select>
+        </label>
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">
+            App Secret（只写入本机，不会回显）{connection?.has_app_secret ? ' · 已保存' : ''}
+          </span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            type="password"
+            value={secretDraft}
+            onChange={(event) => setSecretDraft(event.target.value)}
+            placeholder="留空表示不修改"
+            onBlur={() => {
+              const secret = secretDraft.trim();
+              if (!secret) return;
+              save(secret);
+              setSecretDraft('');
+            }}
+          />
+        </label>
+      </div>
+      <div className="rounded-md bg-slate-100/90 px-3 py-2 text-xs text-slate-600">
+        在开放平台「安全设置 → 重定向 URL」加入
+        <code className="mx-1 font-mono">{redirectUri}</code>
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <button
+          className="btn btn-sm"
+          onClick={() => onConnect({
+            appId,
+            calendarId,
+            domain,
+            appSecret: secretDraft.trim() || undefined,
+          })}
+          disabled={!actions.connect || busy !== 'idle'}
+        >
+          {busy === 'connecting' ? '连接中...' : '连接飞书'}
+        </button>
+        <button className="btn btn-sm" onClick={onDisconnect} disabled={!actions.disconnect || busy !== 'idle'}>断开</button>
+        <button className="btn btn-sm btn-primary" onClick={onSync} disabled={!actions.sync || busy !== 'idle'}>
+          {busy === 'syncing' ? '同步中...' : '立即同步'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function parseFeishuConfig(connection: FeishuConnection | null, config?: string): { appId: string; calendarId: string; domain: string } {
+  if (connection) {
+    return {
+      appId: connection.app_id,
+      calendarId: connection.calendar_id || 'primary',
+      domain: connection.domain === 'lark' ? 'lark' : 'feishu',
+    };
+  }
+  try {
+    const parsed = JSON.parse(config || '{}') as { app_id?: string; calendar_id?: string; domain?: string };
+    return {
+      appId: parsed.app_id ?? '',
+      calendarId: parsed.calendar_id || 'primary',
+      domain: parsed.domain === 'lark' ? 'lark' : 'feishu',
+    };
+  } catch {
+    return { appId: '', calendarId: 'primary', domain: 'feishu' };
+  }
 }
 
 function GoogleSyncRow({

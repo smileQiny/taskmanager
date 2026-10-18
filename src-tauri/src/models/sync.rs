@@ -92,3 +92,24 @@ pub struct SaveMacosCalendarSettingsInput {
     pub calendar_name: Option<String>,
     pub enabled: Option<bool>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FeishuConnection {
+    pub status: String,
+    pub connected: bool,
+    pub app_id: String,
+    pub calendar_id: String,
+    pub domain: String,
+    pub has_app_secret: bool,
+    pub redirect_uri: String,
+    pub last_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveFeishuSettingsInput {
+    pub app_id: String,
+    pub app_secret: Option<String>,
+    pub calendar_id: Option<String>,
+    pub domain: Option<String>,
+    pub enabled: Option<bool>,
+}
