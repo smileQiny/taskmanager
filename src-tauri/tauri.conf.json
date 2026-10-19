@@ -22,7 +22,56 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": ["'self'"],
+        "script-src": ["'self'"],
+        "style-src": ["'self'"],
+        "style-src-attr": ["'unsafe-inline'"],
+        "img-src": ["'self'", "asset:", "http://asset.localhost"],
+        "font-src": ["'self'"],
+        "connect-src": [
+          "'self'",
+          "ipc:",
+          "http://ipc.localhost",
+          "https://github.com",
+          "https://api.github.com",
+          "https://release-assets.githubusercontent.com"
+        ],
+        "frame-src": ["'none'"],
+        "object-src": ["'none'"],
+        "base-uri": ["'self'"],
+        "form-action": ["'self'"],
+        "frame-ancestors": ["'none'"]
+      },
+      "devCsp": {
+        "default-src": ["'self'"],
+        "script-src": ["'self'", "'nonce-taskmanager-dev'"],
+        "style-src": ["'self'", "'nonce-taskmanager-dev'"],
+        "style-src-attr": ["'unsafe-inline'"],
+        "img-src": ["'self'", "asset:", "http://asset.localhost"],
+        "font-src": ["'self'"],
+        "connect-src": [
+          "'self'",
+          "ipc:",
+          "http://ipc.localhost",
+          "https://github.com",
+          "https://api.github.com",
+          "https://release-assets.githubusercontent.com",
+          "http://localhost:1420",
+          "http://127.0.0.1:1420",
+          "ws://localhost:1420",
+          "ws://127.0.0.1:1420",
+          "http://localhost:1421",
+          "http://127.0.0.1:1421",
+          "ws://localhost:1421",
+          "ws://127.0.0.1:1421"
+        ],
+        "frame-src": ["'none'"],
+        "object-src": ["'none'"],
+        "base-uri": ["'self'"],
+        "form-action": ["'self'"],
+        "frame-ancestors": ["'none'"]
+      }
     }
   },
   "bundle": {
