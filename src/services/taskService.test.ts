@@ -54,6 +54,34 @@ describe('browser task service fallback', () => {
     expect((await syncService.listTaskStates(task.id))[0].sync_status).toBe('pending');
     await expect(syncService.requestMacosAccess()).rejects.toThrow(/macOS/);
   });
+
+  it('does not report Feishu sync as successful outside the desktop app', async () => {
+    await syncService.upsertAccount({
+      provider: 'feishu',
+      enabled: true,
+      config: '{"app_id":"cli_test","calendar_id":"primary","domain":"feishu"}',
+    });
+    const task = await taskService.create({ title: 'Feishu task' });
+    await syncService.setTaskSync({ task_id: task.id, provider: 'feishu', enabled: true });
+
+    const result = await syncService.syncNow('feishu');
+    const status = await syncService.feishuStatus();
+
+    expect(result.status).toBe('error');
+    expect(result.message).toMatch(/desktop app/);
+    expect(result.status).not.toBe('synced');
+    expect(status.connected).toBe(false);
+    expect(status.has_app_secret).toBe(false);
+    expect(status.redirect_uri).toBe('http://127.0.0.1:43821/callback');
+    expect((await syncService.listTaskStates(task.id))[0].sync_status).toBe('pending');
+    await expect(syncService.connectFeishu()).rejects.toThrow(/desktop app/);
+    await expect(syncService.saveFeishuSettings({ app_id: 'cli_test' })).rejects.toThrow(/desktop app/);
+    await expect(syncService.resolveConflict({
+      task_id: task.id,
+      provider: 'feishu',
+      strategy: 'local',
+    })).rejects.toThrow(/desktop app/);
+  });
 });
 
 function createMemoryStorage(): Storage {

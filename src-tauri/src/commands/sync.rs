@@ -1,10 +1,12 @@
 use tauri::State;
 
 use crate::models::sync::{
-    GoogleConnection, MacosCalendarConnection, ResolveSyncConflictInput, SaveGoogleSettingsInput,
-    SaveMacosCalendarSettingsInput, SetTaskSyncInput, SyncAccount, SyncRunResult, TaskSyncState,
-    UpsertSyncAccountInput,
+    FeishuConnection, GoogleConnection, MacosCalendarConnection, ResolveSyncConflictInput,
+    SaveFeishuSettingsInput, SaveGoogleSettingsInput, SaveMacosCalendarSettingsInput,
+    SetTaskSyncInput, SyncAccount, SyncRunResult, TaskSyncState, UpsertSyncAccountInput,
 };
+use crate::modules::feishu_calendar::{self, HttpCalendar as FeishuCalendar};
+use crate::modules::feishu_oauth::{self, endpoints_for};
 use crate::modules::google_calendar::{self, HttpCalendar};
 use crate::modules::google_oauth::{interactive_authorization, refresh_access_token};
 use crate::modules::macos_calendar;
@@ -56,6 +58,39 @@ pub fn upsert_sync_account(
             .find(|account| account.provider == google_calendar::GOOGLE_PROVIDER)
             .ok_or_else(|| "google account missing".to_string());
     }
+    if input.provider == feishu_calendar::FEISHU_PROVIDER {
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        let current = sync_module::list_accounts(&conn)
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .find(|account| account.provider == feishu_calendar::FEISHU_PROVIDER);
+        let config = feishu_calendar::parse_public_config(
+            input.config.as_deref().or(current
+                .as_ref()
+                .and_then(|account| account.config.as_deref())),
+        );
+        feishu_calendar::save_settings(
+            &conn,
+            &store,
+            &SaveFeishuSettingsInput {
+                app_id: config.app_id,
+                app_secret: None,
+                calendar_id: Some(config.calendar_id),
+                domain: Some(config.domain),
+                enabled: Some(input.enabled),
+            },
+            current
+                .as_ref()
+                .map(|account| account.enabled)
+                .unwrap_or(false),
+        )
+        .map_err(|e| e.to_string())?;
+        return sync_module::list_accounts(&conn)
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .find(|account| account.provider == feishu_calendar::FEISHU_PROVIDER)
+            .ok_or_else(|| "feishu account missing".to_string());
+    }
     if input.provider == macos_calendar::MACOS_PROVIDER {
         let current = sync_module::list_accounts(&conn)
             .map_err(|e| e.to_string())?
@@ -99,6 +134,9 @@ pub async fn sync_provider_now(
     }
     if provider == macos_calendar::MACOS_PROVIDER {
         return sync_macos(&state).await;
+    }
+    if provider == feishu_calendar::FEISHU_PROVIDER {
+        return sync_feishu(&state).await;
     }
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     sync_module::sync_now(&conn, provider).map_err(|e| e.to_string())
@@ -199,6 +237,9 @@ pub async fn resolve_task_sync_conflict(
 ) -> Result<SyncRunResult, String> {
     if input.provider == macos_calendar::MACOS_PROVIDER {
         return resolve_macos(&state, input).await;
+    }
+    if input.provider == feishu_calendar::FEISHU_PROVIDER {
+        return resolve_feishu(&state, input).await;
     }
     if input.provider != google_calendar::GOOGLE_PROVIDER {
         return Err(format!("{} sync is not implemented", input.provider));
@@ -530,4 +571,264 @@ fn macos_account(conn: &rusqlite::Connection) -> Result<SyncAccount, String> {
         .into_iter()
         .find(|account| account.provider == macos_calendar::MACOS_PROVIDER)
         .ok_or_else(|| "macos account missing".to_string())
+}
+
+#[tauri::command]
+pub fn feishu_connection_status(state: State<AppState>) -> Result<FeishuConnection, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+    let account = feishu_account(&conn)?;
+    feishu_calendar::connection_view(&conn, &store, &account).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn save_feishu_settings(
+    state: State<AppState>,
+    input: SaveFeishuSettingsInput,
+) -> Result<FeishuConnection, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+    let account = feishu_account(&conn)?;
+    feishu_calendar::save_settings(&conn, &store, &input, account.enabled)
+        .map_err(|e| e.to_string())?;
+    let account = feishu_account(&conn)?;
+    feishu_calendar::connection_view(&conn, &store, &account).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn connect_feishu_calendar(
+    state: State<'_, AppState>,
+) -> Result<FeishuConnection, String> {
+    let (app_id, app_secret, domain) = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        let account = feishu_account(&conn)?;
+        let config = feishu_calendar::parse_public_config(account.config.as_deref());
+        if config.app_id.is_empty() {
+            return Err("Feishu Calendar requires an OAuth App ID".to_string());
+        }
+        let secret = store
+            .load_feishu_app_secret(&conn)
+            .map_err(|e| e.to_string())?
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| "Feishu Calendar requires an OAuth App Secret".to_string())?;
+        (config.app_id, secret, config.domain)
+    };
+    let tokens = feishu_oauth::interactive_authorization(&domain, &app_id, &app_secret, true)
+        .await
+        .map_err(|e| e.to_string())?;
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+    store
+        .save_feishu_tokens(&conn, &tokens)
+        .map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE sync_accounts SET enabled = 1 WHERE provider = 'feishu'",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    google_calendar::set_provider_feedback(
+        &conn,
+        feishu_calendar::FEISHU_PROVIDER,
+        "authenticated",
+        None,
+    )
+    .map_err(|e| e.to_string())?;
+    let account = feishu_account(&conn)?;
+    feishu_calendar::connection_view(&conn, &store, &account).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn disconnect_feishu_calendar(state: State<AppState>) -> Result<FeishuConnection, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+    store
+        .delete_feishu_tokens(&conn)
+        .map_err(|e| e.to_string())?;
+    feishu_calendar::mark_needs_auth(
+        &conn,
+        "Feishu Calendar was disconnected. Connect again to sync.",
+    )
+    .map_err(|e| e.to_string())?;
+    let account = feishu_account(&conn)?;
+    feishu_calendar::connection_view(&conn, &store, &account).map_err(|e| e.to_string())
+}
+
+async fn sync_feishu(state: &State<'_, AppState>) -> Result<SyncRunResult, String> {
+    {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        let account = feishu_account(&conn)?;
+        let has_secret = store
+            .load_feishu_app_secret(&conn)
+            .map_err(|e| e.to_string())?
+            .is_some();
+        let has_tokens = store
+            .load_feishu_tokens(&conn)
+            .map_err(|e| e.to_string())?
+            .is_some();
+        if let Some(blocked) =
+            feishu_calendar::blocked_result(&conn, &account, has_secret, has_tokens)
+                .map_err(|e| e.to_string())?
+        {
+            return Ok(blocked);
+        }
+    }
+    let PreparedFeishu {
+        api_base,
+        calendar_id,
+        access_token,
+    } = prepare_feishu_access(state).await?;
+    let api = FeishuCalendar::new(access_token, api_base);
+    let calendar_id = if calendar_id == "primary" {
+        api.resolve_primary()
+            .await
+            .map_err(|err| map_feishu_auth_error(state, err.to_string()))?
+    } else {
+        calendar_id
+    };
+    let snapshots = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        feishu_calendar::load_feishu_snapshots(&conn).map_err(|e| e.to_string())?
+    };
+    let plans =
+        feishu_calendar::compute_plans(&api, &calendar_id, local_offset_seconds(), snapshots)
+            .await
+            .map_err(|err| map_feishu_auth_error(state, err.to_string()))?;
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    feishu_calendar::apply_plans(&conn, &plans).map_err(|e| e.to_string())
+}
+
+async fn resolve_feishu(
+    state: &State<'_, AppState>,
+    input: ResolveSyncConflictInput,
+) -> Result<SyncRunResult, String> {
+    let (calendar_id, api_base, access_token, snapshot) = {
+        let prepared = prepare_feishu_access(state).await?;
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let snapshot = feishu_calendar::load_feishu_snapshots(&conn)
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .find(|item| item.task.id == input.task_id)
+            .ok_or_else(|| "task is not opted in to Feishu Calendar".to_string())?;
+        (
+            prepared.calendar_id,
+            prepared.api_base,
+            prepared.access_token,
+            snapshot,
+        )
+    };
+    let api = FeishuCalendar::new(access_token, api_base);
+    let calendar_id = if calendar_id == "primary" {
+        api.resolve_primary()
+            .await
+            .map_err(|err| map_feishu_auth_error(state, err.to_string()))?
+    } else {
+        calendar_id
+    };
+    let plan = feishu_calendar::plan_resolution(
+        &api,
+        &calendar_id,
+        local_offset_seconds(),
+        snapshot,
+        &input.strategy,
+    )
+    .await
+    .map_err(|err| map_feishu_auth_error(state, err.to_string()))?;
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    feishu_calendar::apply_plans(&conn, &[plan]).map_err(|e| e.to_string())
+}
+
+struct PreparedFeishu {
+    api_base: String,
+    calendar_id: String,
+    access_token: String,
+}
+
+async fn prepare_feishu_access(state: &State<'_, AppState>) -> Result<PreparedFeishu, String> {
+    let (app_id, app_secret, domain, calendar_id, tokens) = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        let account = feishu_account(&conn)?;
+        let config = feishu_calendar::parse_public_config(account.config.as_deref());
+        let secret = store
+            .load_feishu_app_secret(&conn)
+            .map_err(|e| e.to_string())?;
+        let tokens = store.load_feishu_tokens(&conn).map_err(|e| e.to_string())?;
+        (
+            config.app_id,
+            secret,
+            config.domain,
+            config.calendar_id,
+            tokens,
+        )
+    };
+    let Some(tokens) = tokens else {
+        return Err(
+            "Feishu Calendar sync requires OAuth authorization before live sync.".to_string(),
+        );
+    };
+    let Some(app_secret) = app_secret.filter(|secret| !secret.is_empty()) else {
+        return Err(
+            "Feishu Calendar sync requires an OAuth App Secret before live sync.".to_string(),
+        );
+    };
+    if app_id.is_empty() {
+        return Err("Feishu Calendar sync requires an OAuth App ID before live sync.".to_string());
+    }
+    let fresh = match ensure_fresh_feishu_tokens(&domain, &app_id, &app_secret, tokens).await {
+        Ok(tokens) => tokens,
+        Err(err) => return Err(map_feishu_auth_error(state, err)),
+    };
+    {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        store
+            .save_feishu_tokens(&conn, &fresh)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(PreparedFeishu {
+        api_base: endpoints_for(&domain).api_base.to_string(),
+        calendar_id,
+        access_token: fresh.access_token,
+    })
+}
+
+async fn ensure_fresh_feishu_tokens(
+    domain: &str,
+    app_id: &str,
+    app_secret: &str,
+    tokens: GoogleTokens,
+) -> Result<GoogleTokens, String> {
+    let now = chrono::Utc::now().timestamp();
+    if tokens.expires_at > now + 60 {
+        return Ok(tokens);
+    }
+    feishu_oauth::refresh_access_token(endpoints_for(domain).token_url, app_id, app_secret, &tokens)
+        .await
+        .map_err(|err| err.to_string())
+}
+
+fn map_feishu_auth_error(state: &State<'_, AppState>, message: String) -> String {
+    if message.contains("invalid_grant") || message.contains("status 401") {
+        if let Ok(conn) = state.db.lock() {
+            if let Ok(store) = TokenStore::for_app(&state.data_dir) {
+                let _ = store.delete_feishu_tokens(&conn);
+            }
+            let _ = feishu_calendar::mark_needs_auth(
+                &conn,
+                "Feishu authorization expired. Connect Feishu Calendar again.",
+            );
+        }
+        return "Feishu authorization expired. Connect Feishu Calendar again.".to_string();
+    }
+    message
+}
+
+fn feishu_account(conn: &rusqlite::Connection) -> Result<SyncAccount, String> {
+    sync_module::list_accounts(conn)
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .find(|account| account.provider == feishu_calendar::FEISHU_PROVIDER)
+        .ok_or_else(|| "feishu account missing".to_string())
 }

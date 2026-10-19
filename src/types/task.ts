@@ -170,3 +170,22 @@ export interface SaveMacosCalendarSettingsInput {
   calendar_name?: string;
   enabled?: boolean;
 }
+
+export interface FeishuConnection {
+  status: string;
+  connected: boolean;
+  app_id: string;
+  calendar_id: string;
+  domain: string;
+  has_app_secret: boolean;
+  redirect_uri: string;
+  last_error?: string | null;
+}
+
+export interface SaveFeishuSettingsInput {
+  app_id: string;
+  app_secret?: string;
+  calendar_id?: string;
+  domain?: string;
+  enabled?: boolean;
+}

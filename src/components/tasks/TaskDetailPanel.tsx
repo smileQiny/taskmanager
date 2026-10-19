@@ -234,12 +234,14 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                           onChange={(event) => void setTaskSync(task.id, provider, event.target.checked, setSyncStates, setSyncError)}
                         />
                       </label>
-                      {(provider === 'google' || provider === 'macos') && state?.sync_status === 'conflict' && (
+                      {(provider === 'google' || provider === 'macos' || provider === 'feishu') && state?.sync_status === 'conflict' && (
                         <div className="mt-2 space-y-2">
                           <p className="text-xs text-amber-700">
                             {provider === 'google'
                               ? '本地和 Google 都改过，未自动覆盖。'
-                              : '本地和 macOS 日历都改过，未自动覆盖。'}
+                              : provider === 'feishu'
+                                ? '本地和飞书日历都改过，未自动覆盖。'
+                                : '本地和 macOS 日历都改过，未自动覆盖。'}
                           </p>
                           <div className="flex gap-2">
                             <button
@@ -254,10 +256,16 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                               className="btn btn-xs"
                               onClick={() => void resolveSyncConflict(provider, task.id, 'remote').catch((error) => setSyncError(String(error)))}
                             >
-                              {provider === 'google' ? '采用 Google' : '采用日历'}
+                              {provider === 'google' ? '采用 Google' : provider === 'feishu' ? '采用飞书' : '采用日历'}
                             </button>
                           </div>
                         </div>
+                      )}
+                      {provider === 'feishu' && state?.sync_status === 'needs_auth' && (
+                        <p className="mt-2 text-xs text-amber-700">需要在设置中连接飞书日历。</p>
+                      )}
+                      {provider === 'feishu' && state?.sync_status === 'error' && (
+                        <p className="mt-2 text-xs text-rose-600">同步失败。请在设置中检查飞书授权后重试。</p>
                       )}
                       {provider === 'macos' && state?.sync_status === 'needs_auth' && (
                         <p className="mt-2 text-xs text-amber-700">需要 macOS 日历的完整访问权限。</p>

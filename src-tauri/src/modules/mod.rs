@@ -1,4 +1,6 @@
 pub mod db;
+pub mod feishu_calendar;
+pub mod feishu_oauth;
 pub mod google_calendar;
 pub mod google_oauth;
 pub mod macos_calendar;

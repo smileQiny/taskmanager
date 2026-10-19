@@ -3,24 +3,18 @@ use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use block2::RcBlock;
 use chrono::{Local, NaiveDate, TimeZone};
+use dispatch2::DispatchQueue;
 use objc2::rc::Retained;
 use objc2::runtime::{Bool, NSObjectProtocol};
 use objc2::sel;
 use objc2_event_kit::{EKEntityType, EKEvent, EKEventStore, EKSpan};
 use objc2_foundation::{NSDate, NSError, NSString, NSURL};
-use std::ffi::c_void;
 use std::time::Duration;
 
 use crate::modules::google_calendar::{CalendarApi, EventDraft, EventMoment, RemoteEvent};
 use crate::modules::macos_calendar::{
     access_from_code, decode_notes, encode_notes, task_url, CalendarAccess,
 };
-
-#[link(name = "System", kind = "dylib")]
-extern "C" {
-    fn dispatch_get_main_queue() -> *mut c_void;
-    fn dispatch_async_f(queue: *mut c_void, context: *mut c_void, work: extern "C" fn(*mut c_void));
-}
 
 pub struct EventKitApi {
     calendar_id: String,
@@ -167,19 +161,9 @@ fn with_store<T>(work: impl FnOnce(&EKEventStore) -> Result<T>) -> Result<T> {
 }
 
 fn on_main(work: Box<dyn FnOnce() + Send>) {
-    let context = Box::into_raw(Box::new(work));
-    unsafe {
-        dispatch_async_f(
-            dispatch_get_main_queue(),
-            context as *mut c_void,
-            run_main_work,
-        );
-    }
-}
-
-extern "C" fn run_main_work(context: *mut c_void) {
-    let work = unsafe { Box::from_raw(context as *mut Box<dyn FnOnce() + Send>) };
-    work();
+    // `dispatch_get_main_queue` is an inline in the Apple SDK, so it is not a
+    // linker symbol. `DispatchQueue::main` uses the exported `_dispatch_main_q`.
+    DispatchQueue::main().exec_async(move || work());
 }
 
 unsafe fn apply_draft(
@@ -205,13 +189,17 @@ unsafe fn apply_draft(
     match (&draft.start, &draft.end) {
         (EventMoment::Date(start), EventMoment::Date(end)) => {
             event.setAllDay(true);
-            event.setStartDate(Some(&local_midnight(start)?));
-            event.setEndDate(Some(&local_midnight(end)?));
+            let start_date = local_midnight(start)?;
+            let end_date = local_midnight(end)?;
+            event.setStartDate(Some(&start_date));
+            event.setEndDate(Some(&end_date));
         }
         (EventMoment::DateTime(start), EventMoment::DateTime(end)) => {
             event.setAllDay(false);
-            event.setStartDate(Some(&unix_date(parse_unix(start)?)?));
-            event.setEndDate(Some(&unix_date(parse_unix(end)?)?));
+            let start_date = unix_date(parse_unix(start)?)?;
+            let end_date = unix_date(parse_unix(end)?)?;
+            event.setStartDate(Some(&start_date));
+            event.setEndDate(Some(&end_date));
         }
         _ => return Err(anyhow!("event draft has mixed date bounds")),
     }
@@ -290,11 +278,13 @@ fn local_midnight(date: &str) -> Result<Retained<NSDate>> {
         .from_local_datetime(&naive)
         .single()
         .ok_or_else(|| anyhow!("all-day date is ambiguous in the local timezone"))?;
-    Ok(unsafe { NSDate::dateWithTimeIntervalSince1970(local.timestamp() as f64) })
+    Ok(NSDate::dateWithTimeIntervalSince1970(
+        local.timestamp() as f64
+    ))
 }
 
 fn unix_date(unix: i64) -> Result<Retained<NSDate>> {
-    Ok(unsafe { NSDate::dateWithTimeIntervalSince1970(unix as f64) })
+    Ok(NSDate::dateWithTimeIntervalSince1970(unix as f64))
 }
 
 fn parse_unix(value: &str) -> Result<i64> {

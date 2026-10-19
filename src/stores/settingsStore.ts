@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   AppMetadata,
   AppSettings,
+  FeishuConnection,
   MacosCalendarConnection,
   SyncAccount,
   SyncProvider,
@@ -22,6 +23,8 @@ interface SettingsStore {
   googleBusy: 'idle' | 'connecting' | 'syncing';
   macosConnection: MacosCalendarConnection | null;
   macosBusy: 'idle' | 'requesting' | 'syncing';
+  feishuConnection: FeishuConnection | null;
+  feishuBusy: 'idle' | 'connecting' | 'syncing';
   syncRevision: number;
   error: string | null;
   fetchSettings: () => Promise<void>;
@@ -37,6 +40,9 @@ interface SettingsStore {
   refreshMacosConnection: () => Promise<void>;
   saveMacosCalendar: (input: { calendarId?: string; calendarName?: string; enabled?: boolean }) => Promise<void>;
   requestMacosAccess: () => Promise<void>;
+  saveFeishuSettings: (input: { appId: string; calendarId: string; domain: string; appSecret?: string; enabled?: boolean }) => Promise<void>;
+  connectFeishu: (input?: { appId: string; calendarId: string; domain: string; appSecret?: string }) => Promise<void>;
+  disconnectFeishu: () => Promise<void>;
   syncNow: (provider: SyncProvider) => Promise<void>;
 }
 
@@ -55,6 +61,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   googleBusy: 'idle',
   macosConnection: null,
   macosBusy: 'idle',
+  feishuConnection: null,
+  feishuBusy: 'idle',
   syncRevision: 0,
   error: null,
 
@@ -66,13 +74,14 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   fetchSettings: async () => {
     set({ loading: true, error: null });
     try {
-      const [settings, metadata, syncAccounts, macosConnection] = await Promise.all([
+      const [settings, metadata, syncAccounts, macosConnection, feishuConnection] = await Promise.all([
         settingsService.get(),
         appService.getMetadata(),
         syncService.listAccounts(),
         syncService.macosStatus(),
+        syncService.feishuStatus(),
       ]);
-      set({ settings, metadata, syncAccounts, macosConnection, loading: false, hydrated: true });
+      set({ settings, metadata, syncAccounts, macosConnection, feishuConnection, loading: false, hydrated: true });
       applyDocumentTheme(settings.theme);
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -168,9 +177,10 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   resolveSyncConflict: async (provider, taskId, strategy) => {
     try {
       const result = await syncService.resolveConflict({ task_id: taskId, provider, strategy });
-      const [syncAccounts, macosConnection] = await Promise.all([
+      const [syncAccounts, macosConnection, feishuConnection] = await Promise.all([
         syncService.listAccounts(),
         provider === 'macos' ? syncService.macosStatus() : Promise.resolve(useSettingsStore.getState().macosConnection),
+        provider === 'feishu' ? syncService.feishuStatus() : Promise.resolve(useSettingsStore.getState().feishuConnection),
       ]);
       if (strategy === 'remote') {
         await useTaskStore.getState().fetchTasks();
@@ -178,6 +188,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
       set((state) => ({
         syncAccounts,
         macosConnection,
+        feishuConnection,
         lastSyncResult: result,
         error: null,
         syncRevision: state.syncRevision + 1,
@@ -225,16 +236,73 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     }
   },
 
+  saveFeishuSettings: async ({ appId, calendarId, domain, appSecret, enabled }) => {
+    try {
+      const feishuConnection = await syncService.saveFeishuSettings({
+        app_id: appId,
+        calendar_id: calendarId,
+        domain,
+        app_secret: appSecret,
+        enabled,
+      });
+      const syncAccounts = await syncService.listAccounts();
+      set({ feishuConnection, syncAccounts, error: null });
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  connectFeishu: async (input) => {
+    set({ feishuBusy: 'connecting', error: null });
+    try {
+      if (input) {
+        await syncService.saveFeishuSettings({
+          app_id: input.appId,
+          calendar_id: input.calendarId,
+          domain: input.domain,
+          app_secret: input.appSecret,
+        });
+      }
+      const feishuConnection = await syncService.connectFeishu();
+      const syncAccounts = await syncService.listAccounts();
+      set({ feishuConnection, syncAccounts, feishuBusy: 'idle', error: null });
+    } catch (e) {
+      set({ feishuBusy: 'idle', error: String(e) });
+      throw e;
+    }
+  },
+
+  disconnectFeishu: async () => {
+    try {
+      const feishuConnection = await syncService.disconnectFeishu();
+      const syncAccounts = await syncService.listAccounts();
+      set((state) => ({
+        feishuConnection,
+        syncAccounts,
+        error: null,
+        syncRevision: state.syncRevision + 1,
+      }));
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
   syncNow: async (provider) => {
     if (provider === 'google') set({ googleBusy: 'syncing', error: null });
     if (provider === 'macos') set({ macosBusy: 'syncing', error: null });
+    if (provider === 'feishu') set({ feishuBusy: 'syncing', error: null });
     try {
       const result = await syncService.syncNow(provider);
-      const refreshAccount = provider === 'google' || provider === 'macos';
+      const refreshAccount = provider === 'google' || provider === 'macos' || provider === 'feishu';
       const syncAccounts = refreshAccount ? await syncService.listAccounts() : useSettingsStore.getState().syncAccounts;
       const macosConnection = provider === 'macos'
         ? await syncService.macosStatus()
         : useSettingsStore.getState().macosConnection;
+      const feishuConnection = provider === 'feishu'
+        ? await syncService.feishuStatus()
+        : useSettingsStore.getState().feishuConnection;
       if (result.status === 'synced') {
         await useTaskStore.getState().fetchTasks();
       }
@@ -244,11 +312,13 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
         lastSyncResult: result,
         googleBusy: 'idle',
         macosBusy: 'idle',
+        feishuBusy: 'idle',
+        feishuConnection,
         error: result.status === 'error' ? result.message : null,
         syncRevision: state.syncRevision + 1,
       }));
     } catch (e) {
-      set({ googleBusy: 'idle', macosBusy: 'idle', error: String(e) });
+      set({ googleBusy: 'idle', macosBusy: 'idle', feishuBusy: 'idle', error: String(e) });
       throw e;
     }
   },
