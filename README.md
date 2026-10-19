@@ -151,6 +151,8 @@ cd src-tauri && cargo test && cargo check
 
 `graphify-out/` is generated graph-analysis output. It is gitignored and should not be committed.
 
+Manual desktop acceptance for calendar sync (Google, Feishu/Lark, WeCom, and macOS Calendar) is in [docs/sync-checklist.md](docs/sync-checklist.md).
+
 ## One-Line Install
 
 Install the latest published GitHub Release directly from `smileQiny/taskmanager`.
