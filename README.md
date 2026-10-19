@@ -26,7 +26,7 @@ Google sync uses a desktop OAuth client, PKCE, and a loopback redirect on `127.0
 
 Opt in per task, then sync. If the same event changed both locally and in Google since the last sync, the task is marked as a conflict and neither side is overwritten until you keep the local task or the Google event.
 
-Content Security Policy tightening and Apple notarization are follow-ups. A custom URL scheme, multiple Google accounts, and importing unrelated Google events are also out of scope.
+Apple notarization is still a follow-up. A custom URL scheme, multiple Google accounts, and importing unrelated Google events are also out of scope. The webview Content Security Policy does not list Google hosts; see [Content Security Policy](#content-security-policy).
 
 ## Feishu / Lark Calendar
 
@@ -101,15 +101,53 @@ npm run version:set -- <next-version>
 npm run version:check
 ```
 
+## Content Security Policy
+
+The packaged webview and `npm run preview` use one production policy. The source of truth is `scripts/cspPolicy.mjs`. The same objects are copied into `src-tauri/tauri.conf.json` as `app.security.csp` and `app.security.devCsp`. `npm test` fails if the copies drift.
+
+Production header:
+
+```text
+default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: asset: http://asset.localhost; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://github.com https://api.github.com https://release-assets.githubusercontent.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+```
+
+What that allows:
+
+- **Scripts.** Same origin only. There is no `unsafe-inline` and no `unsafe-eval`. Tauri keeps its default asset rewriting, which adds a per-response nonce and script hashes when the desktop app serves HTML. Do not set `dangerousDisableAssetCspModification`.
+- **Styles.** Same-origin stylesheets. `style-src-attr 'unsafe-inline'` remains because the cockpit transparency and the pomodoro ring set dynamic style attributes, and a CSP nonce cannot cover a style attribute. If a webview ignores `style-src-attr`, move `'unsafe-inline'` onto `style-src` and keep it off `script-src`.
+- **Images.** `'self'`, `data:`, the Tauri `asset:` scheme, and `http://asset.localhost`. `data:` is there for the daisyUI loading spinner, which masks an inline SVG. No remote image hosts.
+- **Fonts.** `'self'`. The UI uses system fonts and does not load a font CDN.
+- **Connections.** Tauri IPC (`ipc:` and `http://ipc.localhost`, because `useHttpsScheme` is off) and the GitHub hosts the in-webview update check actually requests. `latest.json` redirects from `github.com` to `release-assets.githubusercontent.com`.
+- **Frames.** `'none'`. OAuth is not loaded in an iframe.
+
+`npm run dev` and `npm run tauri dev` use a looser dev policy. It adds the fixed nonce `taskmanager-dev` to `script-src` and `style-src` so Vite can run the React refresh preamble and CSS hot reload without `unsafe-inline` or `unsafe-eval`. It also allows the Vite HTTP and websocket origins on `localhost` and `127.0.0.1`, ports 1420 and 1421. That nonce is a development placeholder. It is applied only while the Vite dev server is running, and it is not written into the production bundle. `npm run preview` sends the production header.
+
+### Calendar hosts and loopback
+
+Google, Feishu/Lark, and WeCom calls are made by the Rust process with `reqwest`. Authorization pages open in the system browser. The Feishu callback `http://127.0.0.1:43821/callback` and the ephemeral Google loopback are TCP listeners in Rust. The webview never fetches them, so they are not CSP sources. Allowing `http://127.0.0.1:*` would let an injected script reach every local port and would not make OAuth work.
+
+Rust-only hosts, from `rustOnlyProviderHosts` in `scripts/cspPolicy.mjs`:
+
+- `accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`
+- `accounts.feishu.cn`, `open.feishu.cn`
+- `accounts.larksuite.com`, `open.larksuite.com`
+- `qyapi.weixin.qq.com`
+
+### Adding a host
+
+When a new provider is loaded **by the webview** (a `fetch`, an image, or a frame), add the exact origin to `productionCsp` in `scripts/cspPolicy.mjs`, copy `productionCsp` and `devCsp()` into `src-tauri/tauri.conf.json`, and run `npm test`. Do not use `*`. If `TAURI_DEV_HOST` is set, `vite.config.ts` appends that hostname for ports 1420 and 1421; the value must be a plain hostname, not a CSP fragment. If GitHub changes the `latest.json` redirect host, add that host to `connect-src` the same way.
+
 ## Verification
 
 ```bash
 npm test
+npx tsc --noEmit
 npm run build
+npm run preview
 cd src-tauri && cargo test && cargo check
 ```
 
-Browser preview at `http://127.0.0.1:1420` uses localStorage fallback data so UI flows can be tested outside the Tauri WebView. The packaged desktop app uses Tauri IPC and SQLite.
+`npm run preview` serves the production bundle with the production Content Security Policy header. `npm run dev` at `http://127.0.0.1:1420` uses the dev policy so hot reload works, and it uses localStorage fallback data so UI flows can be tested outside the Tauri webview. The packaged desktop app uses Tauri IPC and SQLite. Desktop OAuth still opens in the system browser.
 
 `graphify-out/` is generated graph-analysis output. It is gitignored and should not be committed.
 
@@ -174,7 +212,7 @@ If the key was generated with a password, also set:
 TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 ```
 
-The public key is committed in `src-tauri/tauri.conf.json`. Do not commit the private key. Apple notarization is still a follow-up, so downloaded macOS builds can need the install script's quarantine cleanup. The webview CSP is also still a follow-up; Google OAuth itself runs in the system browser and the Rust process, not inside the webview.
+The public key is committed in `src-tauri/tauri.conf.json`. Do not commit the private key. Apple notarization is still a follow-up, so downloaded macOS builds can need the install script's quarantine cleanup. Google OAuth itself runs in the system browser and the Rust process, not inside the webview, so those hosts are not part of the webview Content Security Policy.
 
 Release flow:
 
