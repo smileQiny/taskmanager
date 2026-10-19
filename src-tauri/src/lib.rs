@@ -75,6 +75,10 @@ pub fn run() {
             commands::sync::macos_calendar_status,
             commands::sync::save_macos_calendar_settings,
             commands::sync::request_macos_calendar_access,
+            commands::sync::feishu_connection_status,
+            commands::sync::save_feishu_settings,
+            commands::sync::connect_feishu_calendar,
+            commands::sync::disconnect_feishu_calendar,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

@@ -62,6 +62,30 @@ impl TokenStore {
         self.delete(conn, "google.client_secret")
     }
 
+    pub fn save_feishu_tokens(&self, conn: &Connection, tokens: &GoogleTokens) -> Result<()> {
+        self.save_json(conn, "feishu.tokens", tokens)
+    }
+
+    pub fn load_feishu_tokens(&self, conn: &Connection) -> Result<Option<GoogleTokens>> {
+        self.load_json(conn, "feishu.tokens")
+    }
+
+    pub fn delete_feishu_tokens(&self, conn: &Connection) -> Result<()> {
+        self.delete(conn, "feishu.tokens")
+    }
+
+    pub fn save_feishu_app_secret(&self, conn: &Connection, secret: &str) -> Result<()> {
+        self.save_json(conn, "feishu.app_secret", &secret.to_string())
+    }
+
+    pub fn load_feishu_app_secret(&self, conn: &Connection) -> Result<Option<String>> {
+        self.load_json(conn, "feishu.app_secret")
+    }
+
+    pub fn delete_feishu_app_secret(&self, conn: &Connection) -> Result<()> {
+        self.delete(conn, "feishu.app_secret")
+    }
+
     fn save_json<T: Serialize>(&self, conn: &Connection, id: &str, value: &T) -> Result<()> {
         let plaintext = serde_json::to_string(value)?;
         if self.prefer_keyring && save_keyring(id, &plaintext).is_ok() {
@@ -215,5 +239,41 @@ mod tests {
 
         store.delete_tokens(&conn).expect("tokens should delete");
         assert_eq!(store.load_tokens(&conn).expect("load after delete"), None);
+    }
+
+    #[test]
+    fn feishu_app_secret_is_encrypted_and_not_returned_as_plaintext() {
+        let conn = db::init_in_memory().expect("database should initialize");
+        let store = TokenStore::for_tests([9u8; 32]);
+        store
+            .save_feishu_app_secret(&conn, "super-secret")
+            .expect("secret should save");
+        let stored: String = conn
+            .query_row(
+                "SELECT ciphertext FROM oauth_secrets WHERE id = 'feishu.app_secret'",
+                [],
+                |row| {
+                    let bytes: Vec<u8> = row.get(0)?;
+                    Ok(String::from_utf8_lossy(&bytes).to_string())
+                },
+            )
+            .expect("ciphertext should exist");
+        assert!(!stored.contains("super-secret"));
+        assert_eq!(
+            store
+                .load_feishu_app_secret(&conn)
+                .expect("secret should load")
+                .as_deref(),
+            Some("super-secret")
+        );
+        store
+            .delete_feishu_app_secret(&conn)
+            .expect("secret should delete");
+        assert_eq!(
+            store
+                .load_feishu_app_secret(&conn)
+                .expect("load after delete"),
+            None
+        );
     }
 }

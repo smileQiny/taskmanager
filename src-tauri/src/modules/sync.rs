@@ -92,9 +92,15 @@ pub fn sync_now(conn: &Connection, provider: String) -> Result<SyncRunResult> {
         )?
         .ok_or_else(|| anyhow::anyhow!("macOS Calendar sync requires the async command"));
     }
+    if account.provider == crate::modules::feishu_calendar::FEISHU_PROVIDER {
+        let (has_secret, has_tokens) = crate::modules::feishu_calendar::credential_flags(conn)?;
+        return crate::modules::feishu_calendar::blocked_result(
+            conn, &account, has_secret, has_tokens,
+        )?
+        .ok_or_else(|| anyhow::anyhow!("Feishu Calendar sync requires the async command"));
+    }
     let affected_tasks = mark_provider_mappings(conn, &account.provider, "needs_auth")?;
     let message = match account.provider.as_str() {
-        "feishu" => "Feishu sync requires OAuth credentials before live sync.",
         "wecom" => "WeCom sync requires CorpID and OAuth credentials before live sync.",
         "google" => "Google Calendar sync requires OAuth credentials before live sync.",
         _ => "Provider is not supported.",
@@ -185,6 +191,9 @@ fn get_account(conn: &Connection, provider: &str) -> Result<SyncAccount> {
 fn public_provider_config(provider: &str, config: Option<String>) -> Option<String> {
     if provider == crate::modules::macos_calendar::MACOS_PROVIDER {
         return crate::modules::macos_calendar::sanitize_public_config(config);
+    }
+    if provider == crate::modules::feishu_calendar::FEISHU_PROVIDER {
+        return crate::modules::feishu_calendar::sanitize_public_config(config);
     }
     crate::modules::google_calendar::sanitize_provider_config(provider, config)
 }
@@ -342,5 +351,23 @@ mod tests {
         assert_ne!(result.status, "synced");
         let states = list_task_sync_states(&conn, &task.id).expect("states should list");
         assert_eq!(states[0].sync_status, "pending");
+    }
+
+    #[test]
+    fn wecom_stays_an_explicit_stub() {
+        let conn = db::init_in_memory().expect("database should initialize");
+        upsert_account(
+            &conn,
+            UpsertSyncAccountInput {
+                provider: "wecom".to_string(),
+                enabled: true,
+                config: Some(r#"{"corp_id":"ww","calendar_id":"primary"}"#.to_string()),
+            },
+        )
+        .expect("account should upsert");
+        let result = sync_now(&conn, "wecom".to_string()).expect("sync status should return");
+        assert_eq!(result.status, "needs_auth");
+        assert!(result.message.contains("WeCom"));
+        assert_ne!(result.status, "synced");
     }
 }
