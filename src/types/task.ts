@@ -189,3 +189,23 @@ export interface SaveFeishuSettingsInput {
   domain?: string;
   enabled?: boolean;
 }
+
+export interface WecomConnection {
+  status: string;
+  connected: boolean;
+  corp_id: string;
+  agent_id: string;
+  organizer_userid: string;
+  calendar_id: string;
+  has_secret: boolean;
+  last_error?: string | null;
+}
+
+export interface SaveWecomSettingsInput {
+  corp_id: string;
+  agent_id: string;
+  secret?: string;
+  organizer_userid: string;
+  calendar_id?: string;
+  enabled?: boolean;
+}

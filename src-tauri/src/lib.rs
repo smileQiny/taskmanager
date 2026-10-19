@@ -79,6 +79,10 @@ pub fn run() {
             commands::sync::save_feishu_settings,
             commands::sync::connect_feishu_calendar,
             commands::sync::disconnect_feishu_calendar,
+            commands::sync::wecom_connection_status,
+            commands::sync::save_wecom_settings,
+            commands::sync::connect_wecom_calendar,
+            commands::sync::disconnect_wecom_calendar,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");

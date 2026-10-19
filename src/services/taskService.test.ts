@@ -82,6 +82,42 @@ describe('browser task service fallback', () => {
       strategy: 'local',
     })).rejects.toThrow(/desktop app/);
   });
+
+  it('does not report WeCom sync as successful outside the desktop app', async () => {
+    await syncService.upsertAccount({
+      provider: 'wecom',
+      enabled: true,
+      config: '{"corp_id":"ww123","agent_id":"1000002","organizer_userid":"zhangsan","calendar_id":"primary","secret":"super-secret","access_token":"token-secret"}',
+    });
+    const task = await taskService.create({ title: 'WeCom task' });
+    await syncService.setTaskSync({ task_id: task.id, provider: 'wecom', enabled: true });
+
+    const result = await syncService.syncNow('wecom');
+    const status = await syncService.wecomStatus();
+    const account = (await syncService.listAccounts()).find((item) => item.provider === 'wecom');
+
+    expect(result.status).toBe('error');
+    expect(result.message).toMatch(/desktop app/);
+    expect(result.status).not.toBe('synced');
+    expect(status.connected).toBe(false);
+    expect(status.has_secret).toBe(false);
+    expect(status.corp_id).toBe('ww123');
+    expect(account?.config).not.toMatch(/super-secret/);
+    expect(account?.config).not.toMatch(/token-secret/);
+    expect((await syncService.listTaskStates(task.id))[0].sync_status).toBe('pending');
+    await expect(syncService.connectWecom()).rejects.toThrow(/desktop app/);
+    await expect(syncService.saveWecomSettings({
+      corp_id: 'ww123',
+      agent_id: '1000002',
+      organizer_userid: 'zhangsan',
+      secret: 'super-secret',
+    })).rejects.toThrow(/desktop app/);
+    await expect(syncService.resolveConflict({
+      task_id: task.id,
+      provider: 'wecom',
+      strategy: 'local',
+    })).rejects.toThrow(/desktop app/);
+  });
 });
 
 function createMemoryStorage(): Storage {

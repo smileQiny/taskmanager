@@ -12,7 +12,7 @@ Local-first desktop task manager built with Tauri 2, React 19, TypeScript, Rust,
 - Pomodoro workspace with local timer and completed session records.
 - Settings workspace with theme, default calendar view, local data path, and sync provider configuration.
 - Startup and manual signed updates from the latest GitHub Release.
-- Remote sync for opted-in tasks with Feishu/Lark Calendar, macOS Calendar, and Google Calendar. WeCom stays an unimplemented stub.
+- Remote sync for opted-in tasks with Feishu/Lark Calendar, macOS Calendar, Google Calendar, and WeCom (企业微信) schedules created by a corp app.
 
 ## Google Calendar
 
@@ -52,9 +52,34 @@ Feishu calendar events do not expose an update timestamp. After the first succes
 5. Make the app available to the Feishu or Lark account that will sync, and publish the app version.
 6. In Task Manager settings, choose 飞书 or Lark, paste the App ID and App Secret, and set the calendar ID to `primary` or a specific calendar ID. Choose Connect Feishu. Do not put these credentials in the repository.
 
-The requested scope string is `offline_access calendar:calendar:readonly calendar:calendar.event:read calendar:calendar.event:create calendar:calendar.event:update`. Authorization opens in the system browser and returns to the loopback redirect above. Opt in per task, then sync. The browser preview reports an explicit desktop-only error and does not mark the sync as successful. WeCom is still a stub.
+The requested scope string is `offline_access calendar:calendar:readonly calendar:calendar.event:read calendar:calendar.event:create calendar:calendar.event:update`. Authorization opens in the system browser and returns to the loopback redirect above. Opt in per task, then sync. The browser preview reports an explicit desktop-only error and does not mark the sync as successful.
 
 All-day events use an exclusive UTC end date, the same way Google events do. Recurrence is not synced.
+
+## WeCom Calendar
+
+WeCom schedule APIs do not offer a user OAuth calendar scope. A self-built corp app calls `gettoken` with its CorpID and Secret, then creates and updates schedules on a calendar that same app owns. Task Manager stores the Secret and the corp access token in the OS keychain when it is available, otherwise in the encrypted local secret table. They are not returned to the frontend and must not be committed. There is no browser redirect URL.
+
+WeCom schedule objects do not include an update timestamp. After the first successful sync, Task Manager stores a content fingerprint. A later edit on only one side is copied across. If both the task and the WeCom schedule changed since that fingerprint, the task is marked as a conflict and neither side is overwritten until you keep the local task or the WeCom schedule.
+
+Limits, compared with Feishu or Google:
+
+- Only schedules on calendars created by this app can be read or updated. Personal schedules the member created in WeCom, and schedules created by another app, are outside the API.
+- The configured member userid is added as the schedule admin and attendee so the event shows on that member's calendar. The userid must be inside the app's visible range.
+- New self-built apps must list this computer's public IP under the app's 企业可信IP. Calls from any other IP fail and are reported as errors.
+- Titles are limited to 128 characters and descriptions to 1000 characters. A hidden `[taskmanager:<task id>]` marker is appended to the description so a retry can find the schedule instead of creating a duplicate. That marker is removed before the text is written back to the local task.
+- All-day events use an exclusive end at local midnight, using the nearest whole-hour UTC offset because WeCom timezones are whole hours. Recurrence is not synced.
+- The browser preview reports an explicit desktop-only error and does not mark the sync as successful.
+
+Setup:
+
+1. In the WeCom admin console, create a self-built app. Copy the CorpID, AgentId, and Secret.
+2. Add the app's visible range so it includes the member who should see the schedules. Copy that member's userid.
+3. Open 协作 → 日程 and add this app to 可调用接口的应用. Publish or save so the schedule permission is active.
+4. In the app details, set 企业可信IP to the public IP of each desktop that will sync. A new app cannot call the API until this is set. Allow about a minute after saving the IP.
+5. In Task Manager settings, paste the CorpID, AgentId, Secret, and member userid. Leave the calendar ID as `primary` to create a Task Manager calendar on connect, or paste a `cal_id` this same app already created. Choose 连接企业微信. Do not put these credentials in the repository.
+
+Opt in per task, then sync. Disconnect deletes the saved access token and keeps the Secret on this machine until you clear the Secret field.
 
 ## Development
 

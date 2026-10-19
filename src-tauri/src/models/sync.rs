@@ -113,3 +113,25 @@ pub struct SaveFeishuSettingsInput {
     pub domain: Option<String>,
     pub enabled: Option<bool>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct WecomConnection {
+    pub status: String,
+    pub connected: bool,
+    pub corp_id: String,
+    pub agent_id: String,
+    pub organizer_userid: String,
+    pub calendar_id: String,
+    pub has_secret: bool,
+    pub last_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveWecomSettingsInput {
+    pub corp_id: String,
+    pub agent_id: String,
+    pub secret: Option<String>,
+    pub organizer_userid: String,
+    pub calendar_id: Option<String>,
+    pub enabled: Option<bool>,
+}
