@@ -9,7 +9,8 @@ import { minCockpitOpacity, maxCockpitOpacity } from '../utils/cockpitTransparen
 import { googleActions, googleConnectionPhase, isDesktopRuntime } from '../utils/googleSync';
 import { feishuActions, feishuConnectionPhase, FEISHU_REDIRECT_URI } from '../utils/feishuSync';
 import { macosActions, macosConnectionPhase, macosPermissionHint } from '../utils/macosSync';
-import { FeishuConnection, MacosCalendarConnection } from '../types/task';
+import { wecomActions, wecomConnectionPhase } from '../utils/wecomSync';
+import { FeishuConnection, MacosCalendarConnection, WecomConnection } from '../types/task';
 
 const providerLabels: Record<SyncProvider, string> = {
   feishu: '飞书日历',
@@ -21,7 +22,7 @@ const providerLabels: Record<SyncProvider, string> = {
 const providerDescriptions: Record<SyncProvider, string> = {
   feishu: '桌面端通过 PKCE 和固定回环地址授权后，按任务勾选与飞书或 Lark 日历双向同步。',
   macos: '仅 macOS。授权完整日历访问后，按任务勾选与「日历」双向同步。',
-  wecom: '需要企业微信 CorpID 和 OAuth 配置。',
+  wecom: '桌面端使用企业自建应用凭证同步已勾选任务。企业微信没有用户 OAuth 日历范围，日程写到本应用创建的日历。',
   google: '桌面端通过 PKCE 授权后，按任务勾选与 Google Calendar 双向同步。',
 };
 
@@ -51,6 +52,11 @@ export function SettingsPage() {
     saveFeishuSettings,
     connectFeishu,
     disconnectFeishu,
+    wecomConnection,
+    wecomBusy,
+    saveWecomSettings,
+    connectWecom,
+    disconnectWecom,
   } = useSettingsStore();
   const { setDurationMinutes } = usePomodoroStore();
   const {
@@ -191,6 +197,18 @@ export function SettingsPage() {
                   onSave={(input) => void saveGoogleSettings(input).catch(() => undefined)}
                   onConnect={() => void connectGoogle().catch(() => undefined)}
                   onDisconnect={() => void disconnectGoogle().catch(() => undefined)}
+                  onSync={() => void syncNow(account.provider)}
+                />
+              ) : account.provider === 'wecom' ? (
+                <WecomSyncRow
+                  key={account.provider}
+                  account={account}
+                  connection={wecomConnection}
+                  busy={wecomBusy}
+                  onToggle={(enabled) => void toggleSyncAccount(account.provider, enabled)}
+                  onSave={(input) => void saveWecomSettings(input).catch(() => undefined)}
+                  onConnect={(input) => void connectWecom(input).catch(() => undefined)}
+                  onDisconnect={() => void disconnectWecom().catch(() => undefined)}
                   onSync={() => void syncNow(account.provider)}
                 />
               ) : account.provider === 'macos' ? (
@@ -732,6 +750,202 @@ function MacosSyncRow({
       </div>
     </div>
   );
+}
+
+function WecomSyncRow({
+  account,
+  connection,
+  busy,
+  onToggle,
+  onSave,
+  onConnect,
+  onDisconnect,
+  onSync,
+}: {
+  account: SyncAccount;
+  connection: WecomConnection | null;
+  busy: 'idle' | 'connecting' | 'syncing';
+  onToggle: (enabled: boolean) => void;
+  onSave: (input: { corpId: string; agentId: string; organizerUserId: string; calendarId: string; secret?: string }) => void;
+  onConnect: (input: { corpId: string; agentId: string; organizerUserId: string; calendarId: string; secret?: string }) => void;
+  onDisconnect: () => void;
+  onSync: () => void;
+}) {
+  const desktop = isDesktopRuntime();
+  const parsed = parseWecomConfig(connection, account.config);
+  const [corpId, setCorpId] = useState(parsed.corpId);
+  const [agentId, setAgentId] = useState(parsed.agentId);
+  const [organizerUserId, setOrganizerUserId] = useState(parsed.organizerUserId);
+  const [calendarId, setCalendarId] = useState(parsed.calendarId);
+  const [secretDraft, setSecretDraft] = useState('');
+  useEffect(() => {
+    setCorpId(parsed.corpId);
+    setAgentId(parsed.agentId);
+    setOrganizerUserId(parsed.organizerUserId);
+    setCalendarId(parsed.calendarId);
+  }, [parsed.corpId, parsed.agentId, parsed.organizerUserId, parsed.calendarId]);
+  const phase = wecomConnectionPhase({
+    desktop,
+    corpId,
+    agentId,
+    organizerUserId,
+    hasSecret: Boolean(connection?.has_secret) || secretDraft.trim().length > 0,
+    status: connection?.status ?? account.status,
+    busy,
+  });
+  const actions = wecomActions(phase);
+  const save = (secret?: string) => onSave({
+    corpId,
+    agentId,
+    organizerUserId,
+    calendarId,
+    secret,
+  });
+
+  return (
+    <div className="grid gap-3 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-slate-900">{providerLabels.wecom}</p>
+            <span className="rounded bg-slate-100/90 px-2 py-0.5 text-xs text-slate-500">
+              {statusLabel(connection?.status ?? account.status)}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">{providerDescriptions.wecom}</p>
+        </div>
+        <input
+          type="checkbox"
+          className="toggle toggle-primary"
+          checked={account.enabled}
+          onChange={(event) => onToggle(event.target.checked)}
+          aria-label="企业微信启用"
+        />
+      </div>
+      {phase === 'desktop_only' && (
+        <div className="rounded-md bg-slate-100/90 px-3 py-2 text-sm text-slate-600">
+          浏览器预览不能连接企业微信。请在桌面版中配置企业自建应用。当前环境不会把同步显示为成功。
+        </div>
+      )}
+      {connection?.last_error && phase !== 'desktop_only' && (
+        <div className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{connection.last_error}</div>
+      )}
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">CorpID</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            value={corpId}
+            onChange={(event) => setCorpId(event.target.value)}
+            onBlur={() => save()}
+            placeholder="wwxxxxxxxx"
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">AgentId</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            value={agentId}
+            onChange={(event) => setAgentId(event.target.value)}
+            onBlur={() => save()}
+            placeholder="1000002"
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">成员 UserID</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            value={organizerUserId}
+            onChange={(event) => setOrganizerUserId(event.target.value)}
+            onBlur={() => save()}
+            placeholder="zhangsan"
+          />
+        </label>
+        <label className="form-control">
+          <span className="label-text mb-1 text-slate-500">日历 ID</span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            value={calendarId}
+            onChange={(event) => setCalendarId(event.target.value)}
+            onBlur={() => save()}
+            placeholder="primary"
+          />
+        </label>
+        <label className="form-control md:col-span-2">
+          <span className="label-text mb-1 text-slate-500">
+            Secret（只写入本机，不会回显）{connection?.has_secret ? ' · 已保存' : ''}
+          </span>
+          <input
+            className="input input-bordered input-sm border-slate-200 bg-white/90 font-mono text-xs"
+            type="password"
+            value={secretDraft}
+            onChange={(event) => setSecretDraft(event.target.value)}
+            placeholder="留空表示不修改"
+            onBlur={() => {
+              const secret = secretDraft.trim();
+              if (!secret) return;
+              save(secret);
+              setSecretDraft('');
+            }}
+          />
+        </label>
+      </div>
+      <div className="rounded-md bg-slate-100/90 px-3 py-2 text-xs text-slate-600">
+        在管理后台把应用加入「日程 → 可调用接口的应用」，并把这台电脑的公网 IP 配到应用的企业可信 IP。日历 ID 留空或填 primary 时，连接会创建 Task Manager 日历并共享给上面的成员。企业微信日程接口不使用 OAuth 回跳地址。
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <button
+          className="btn btn-sm"
+          onClick={() => onConnect({
+            corpId,
+            agentId,
+            organizerUserId,
+            calendarId,
+            secret: secretDraft.trim() || undefined,
+          })}
+          disabled={!actions.connect || busy !== 'idle'}
+        >
+          {busy === 'connecting' ? '连接中...' : '连接企业微信'}
+        </button>
+        <button className="btn btn-sm" onClick={onDisconnect} disabled={!actions.disconnect || busy !== 'idle'}>断开</button>
+        <button className="btn btn-sm btn-primary" onClick={onSync} disabled={!actions.sync || busy !== 'idle'}>
+          {busy === 'syncing' ? '同步中...' : '立即同步'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function parseWecomConfig(connection: WecomConnection | null, config?: string): {
+  corpId: string;
+  agentId: string;
+  organizerUserId: string;
+  calendarId: string;
+} {
+  if (connection) {
+    return {
+      corpId: connection.corp_id,
+      agentId: connection.agent_id,
+      organizerUserId: connection.organizer_userid,
+      calendarId: connection.calendar_id || 'primary',
+    };
+  }
+  try {
+    const parsed = JSON.parse(config || '{}') as {
+      corp_id?: string;
+      agent_id?: string;
+      organizer_userid?: string;
+      calendar_id?: string;
+    };
+    return {
+      corpId: parsed.corp_id ?? '',
+      agentId: parsed.agent_id ?? '',
+      organizerUserId: parsed.organizer_userid ?? '',
+      calendarId: parsed.calendar_id || 'primary',
+    };
+  } catch {
+    return { corpId: '', agentId: '', organizerUserId: '', calendarId: 'primary' };
+  }
 }
 
 function SyncProviderRow({

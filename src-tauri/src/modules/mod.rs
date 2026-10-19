@@ -11,3 +11,4 @@ pub mod settings;
 pub mod sync;
 pub mod task;
 pub mod token_store;
+pub mod wecom_calendar;

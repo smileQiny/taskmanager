@@ -5,6 +5,7 @@ import {
   FeishuConnection,
   MacosCalendarConnection,
   SyncAccount,
+  WecomConnection,
   SyncProvider,
   SyncRunResult,
 } from '../types/task';
@@ -25,6 +26,8 @@ interface SettingsStore {
   macosBusy: 'idle' | 'requesting' | 'syncing';
   feishuConnection: FeishuConnection | null;
   feishuBusy: 'idle' | 'connecting' | 'syncing';
+  wecomConnection: WecomConnection | null;
+  wecomBusy: 'idle' | 'connecting' | 'syncing';
   syncRevision: number;
   error: string | null;
   fetchSettings: () => Promise<void>;
@@ -43,6 +46,9 @@ interface SettingsStore {
   saveFeishuSettings: (input: { appId: string; calendarId: string; domain: string; appSecret?: string; enabled?: boolean }) => Promise<void>;
   connectFeishu: (input?: { appId: string; calendarId: string; domain: string; appSecret?: string }) => Promise<void>;
   disconnectFeishu: () => Promise<void>;
+  saveWecomSettings: (input: { corpId: string; agentId: string; organizerUserId: string; calendarId: string; secret?: string; enabled?: boolean }) => Promise<void>;
+  connectWecom: (input?: { corpId: string; agentId: string; organizerUserId: string; calendarId: string; secret?: string }) => Promise<void>;
+  disconnectWecom: () => Promise<void>;
   syncNow: (provider: SyncProvider) => Promise<void>;
 }
 
@@ -63,6 +69,8 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   macosBusy: 'idle',
   feishuConnection: null,
   feishuBusy: 'idle',
+  wecomConnection: null,
+  wecomBusy: 'idle',
   syncRevision: 0,
   error: null,
 
@@ -74,14 +82,15 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   fetchSettings: async () => {
     set({ loading: true, error: null });
     try {
-      const [settings, metadata, syncAccounts, macosConnection, feishuConnection] = await Promise.all([
+      const [settings, metadata, syncAccounts, macosConnection, feishuConnection, wecomConnection] = await Promise.all([
         settingsService.get(),
         appService.getMetadata(),
         syncService.listAccounts(),
         syncService.macosStatus(),
         syncService.feishuStatus(),
+        syncService.wecomStatus(),
       ]);
-      set({ settings, metadata, syncAccounts, macosConnection, feishuConnection, loading: false, hydrated: true });
+      set({ settings, metadata, syncAccounts, macosConnection, feishuConnection, wecomConnection, loading: false, hydrated: true });
       applyDocumentTheme(settings.theme);
     } catch (e) {
       set({ error: String(e), loading: false });
@@ -103,8 +112,12 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     try {
       const current = useSettingsStore.getState().syncAccounts.find((item) => item.provider === provider);
       const account = await syncService.upsertAccount({ provider, enabled, config: current?.config });
+      const wecomConnection = provider === 'wecom'
+        ? await syncService.wecomStatus()
+        : useSettingsStore.getState().wecomConnection;
       set((s) => ({
         syncAccounts: s.syncAccounts.map((item) => item.provider === provider ? account : item),
+        wecomConnection,
         error: null,
       }));
     } catch (e) {
@@ -177,10 +190,11 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   resolveSyncConflict: async (provider, taskId, strategy) => {
     try {
       const result = await syncService.resolveConflict({ task_id: taskId, provider, strategy });
-      const [syncAccounts, macosConnection, feishuConnection] = await Promise.all([
+      const [syncAccounts, macosConnection, feishuConnection, wecomConnection] = await Promise.all([
         syncService.listAccounts(),
         provider === 'macos' ? syncService.macosStatus() : Promise.resolve(useSettingsStore.getState().macosConnection),
         provider === 'feishu' ? syncService.feishuStatus() : Promise.resolve(useSettingsStore.getState().feishuConnection),
+        provider === 'wecom' ? syncService.wecomStatus() : Promise.resolve(useSettingsStore.getState().wecomConnection),
       ]);
       if (strategy === 'remote') {
         await useTaskStore.getState().fetchTasks();
@@ -189,6 +203,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
         syncAccounts,
         macosConnection,
         feishuConnection,
+        wecomConnection,
         lastSyncResult: result,
         error: null,
         syncRevision: state.syncRevision + 1,
@@ -289,13 +304,69 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     }
   },
 
+  saveWecomSettings: async ({ corpId, agentId, organizerUserId, calendarId, secret, enabled }) => {
+    try {
+      const wecomConnection = await syncService.saveWecomSettings({
+        corp_id: corpId,
+        agent_id: agentId,
+        organizer_userid: organizerUserId,
+        calendar_id: calendarId,
+        secret,
+        enabled,
+      });
+      const syncAccounts = await syncService.listAccounts();
+      set({ wecomConnection, syncAccounts, error: null });
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
+  connectWecom: async (input) => {
+    set({ wecomBusy: 'connecting', error: null });
+    try {
+      if (input) {
+        await syncService.saveWecomSettings({
+          corp_id: input.corpId,
+          agent_id: input.agentId,
+          organizer_userid: input.organizerUserId,
+          calendar_id: input.calendarId,
+          secret: input.secret,
+        });
+      }
+      const wecomConnection = await syncService.connectWecom();
+      const syncAccounts = await syncService.listAccounts();
+      set({ wecomConnection, syncAccounts, wecomBusy: 'idle', error: null });
+    } catch (e) {
+      set({ wecomBusy: 'idle', error: String(e) });
+      throw e;
+    }
+  },
+
+  disconnectWecom: async () => {
+    try {
+      const wecomConnection = await syncService.disconnectWecom();
+      const syncAccounts = await syncService.listAccounts();
+      set((state) => ({
+        wecomConnection,
+        syncAccounts,
+        error: null,
+        syncRevision: state.syncRevision + 1,
+      }));
+    } catch (e) {
+      set({ error: String(e) });
+      throw e;
+    }
+  },
+
   syncNow: async (provider) => {
     if (provider === 'google') set({ googleBusy: 'syncing', error: null });
     if (provider === 'macos') set({ macosBusy: 'syncing', error: null });
     if (provider === 'feishu') set({ feishuBusy: 'syncing', error: null });
+    if (provider === 'wecom') set({ wecomBusy: 'syncing', error: null });
     try {
       const result = await syncService.syncNow(provider);
-      const refreshAccount = provider === 'google' || provider === 'macos' || provider === 'feishu';
+      const refreshAccount = provider === 'google' || provider === 'macos' || provider === 'feishu' || provider === 'wecom';
       const syncAccounts = refreshAccount ? await syncService.listAccounts() : useSettingsStore.getState().syncAccounts;
       const macosConnection = provider === 'macos'
         ? await syncService.macosStatus()
@@ -303,6 +374,9 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
       const feishuConnection = provider === 'feishu'
         ? await syncService.feishuStatus()
         : useSettingsStore.getState().feishuConnection;
+      const wecomConnection = provider === 'wecom'
+        ? await syncService.wecomStatus()
+        : useSettingsStore.getState().wecomConnection;
       if (result.status === 'synced') {
         await useTaskStore.getState().fetchTasks();
       }
@@ -314,11 +388,13 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
         macosBusy: 'idle',
         feishuBusy: 'idle',
         feishuConnection,
+        wecomBusy: 'idle',
+        wecomConnection,
         error: result.status === 'error' ? result.message : null,
         syncRevision: state.syncRevision + 1,
       }));
     } catch (e) {
-      set({ googleBusy: 'idle', macosBusy: 'idle', feishuBusy: 'idle', error: String(e) });
+      set({ googleBusy: 'idle', macosBusy: 'idle', feishuBusy: 'idle', wecomBusy: 'idle', error: String(e) });
       throw e;
     }
   },
