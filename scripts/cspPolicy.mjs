@@ -10,6 +10,9 @@
  * style attributes. The cockpit transparency and pomodoro ring set those
  * attributes at runtime.
  *
+ * `img-src` includes `data:` because daisyUI's `.loading` spinner is a CSS
+ * mask whose image is an inline SVG data URI.
+ *
  * Calendar OAuth and API calls are not webview requests. See
  * `rustOnlyProviderHosts`. Do not add those hosts unless the webview itself
  * starts loading them.
@@ -22,7 +25,7 @@ export const productionCsp = {
   "script-src": ["'self'"],
   "style-src": ["'self'"],
   "style-src-attr": ["'unsafe-inline'"],
-  "img-src": ["'self'", "asset:", "http://asset.localhost"],
+  "img-src": ["'self'", "data:", "asset:", "http://asset.localhost"],
   "font-src": ["'self'"],
   "connect-src": [
     "'self'",

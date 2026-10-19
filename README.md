@@ -108,14 +108,14 @@ The packaged webview and `npm run preview` use one production policy. The source
 Production header:
 
 ```text
-default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' asset: http://asset.localhost; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://github.com https://api.github.com https://release-assets.githubusercontent.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: asset: http://asset.localhost; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://github.com https://api.github.com https://release-assets.githubusercontent.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
 ```
 
 What that allows:
 
 - **Scripts.** Same origin only. There is no `unsafe-inline` and no `unsafe-eval`. Tauri keeps its default asset rewriting, which adds a per-response nonce and script hashes when the desktop app serves HTML. Do not set `dangerousDisableAssetCspModification`.
 - **Styles.** Same-origin stylesheets. `style-src-attr 'unsafe-inline'` remains because the cockpit transparency and the pomodoro ring set dynamic style attributes, and a CSP nonce cannot cover a style attribute. If a webview ignores `style-src-attr`, move `'unsafe-inline'` onto `style-src` and keep it off `script-src`.
-- **Images.** `'self'`, the Tauri `asset:` scheme, and `http://asset.localhost`. No remote image hosts.
+- **Images.** `'self'`, `data:`, the Tauri `asset:` scheme, and `http://asset.localhost`. `data:` is there for the daisyUI loading spinner, which masks an inline SVG. No remote image hosts.
 - **Fonts.** `'self'`. The UI uses system fonts and does not load a font CDN.
 - **Connections.** Tauri IPC (`ipc:` and `http://ipc.localhost`, because `useHttpsScheme` is off) and the GitHub hosts the in-webview update check actually requests. `latest.json` redirects from `github.com` to `release-assets.githubusercontent.com`.
 - **Frames.** `'none'`. OAuth is not loaded in an iframe.

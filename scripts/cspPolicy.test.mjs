@@ -70,6 +70,12 @@ describe("content security policy", () => {
     expect(productionCsp["img-src"].some((source) => source.startsWith("https:"))).toBe(false);
   });
 
+  it("allows data images for daisyUI SVG masks", () => {
+    const daisyCss = readFileSync("node_modules/daisyui/dist/styled.css", "utf8");
+    expect(/url\("data:image\/svg\+xml/.test(daisyCss)).toBe(true);
+    expect(productionCsp["img-src"]).toContain("data:");
+  });
+
   it("allows Tauri IPC and the GitHub hosts the update check follows", () => {
     expect(productionCsp["connect-src"]).toEqual(expect.arrayContaining([
       "ipc:",

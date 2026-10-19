@@ -27,7 +27,7 @@
         "script-src": ["'self'"],
         "style-src": ["'self'"],
         "style-src-attr": ["'unsafe-inline'"],
-        "img-src": ["'self'", "asset:", "http://asset.localhost"],
+        "img-src": ["'self'", "data:", "asset:", "http://asset.localhost"],
         "font-src": ["'self'"],
         "connect-src": [
           "'self'",
@@ -48,7 +48,7 @@
         "script-src": ["'self'", "'nonce-taskmanager-dev'"],
         "style-src": ["'self'", "'nonce-taskmanager-dev'"],
         "style-src-attr": ["'unsafe-inline'"],
-        "img-src": ["'self'", "asset:", "http://asset.localhost"],
+        "img-src": ["'self'", "data:", "asset:", "http://asset.localhost"],
         "font-src": ["'self'"],
         "connect-src": [
           "'self'",
