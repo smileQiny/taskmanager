@@ -99,9 +99,15 @@ pub fn sync_now(conn: &Connection, provider: String) -> Result<SyncRunResult> {
         )?
         .ok_or_else(|| anyhow::anyhow!("Feishu Calendar sync requires the async command"));
     }
+    if account.provider == crate::modules::wecom_calendar::WECOM_PROVIDER {
+        let (has_secret, has_tokens) = crate::modules::wecom_calendar::credential_flags(conn)?;
+        return crate::modules::wecom_calendar::blocked_result(
+            conn, &account, has_secret, has_tokens,
+        )?
+        .ok_or_else(|| anyhow::anyhow!("WeCom Calendar sync requires the async command"));
+    }
     let affected_tasks = mark_provider_mappings(conn, &account.provider, "needs_auth")?;
     let message = match account.provider.as_str() {
-        "wecom" => "WeCom sync requires CorpID and OAuth credentials before live sync.",
         "google" => "Google Calendar sync requires OAuth credentials before live sync.",
         _ => "Provider is not supported.",
     };
@@ -194,6 +200,9 @@ fn public_provider_config(provider: &str, config: Option<String>) -> Option<Stri
     }
     if provider == crate::modules::feishu_calendar::FEISHU_PROVIDER {
         return crate::modules::feishu_calendar::sanitize_public_config(config);
+    }
+    if provider == crate::modules::wecom_calendar::WECOM_PROVIDER {
+        return crate::modules::wecom_calendar::sanitize_public_config(config);
     }
     crate::modules::google_calendar::sanitize_provider_config(provider, config)
 }
@@ -354,20 +363,26 @@ mod tests {
     }
 
     #[test]
-    fn wecom_stays_an_explicit_stub() {
+    fn wecom_without_credentials_needs_auth_instead_of_a_stub() {
         let conn = db::init_in_memory().expect("database should initialize");
-        upsert_account(
+        let account = upsert_account(
             &conn,
             UpsertSyncAccountInput {
                 provider: "wecom".to_string(),
                 enabled: true,
-                config: Some(r#"{"corp_id":"ww","calendar_id":"primary"}"#.to_string()),
+                config: Some(
+                    r#"{"corp_id":"ww","agent_id":"1000002","organizer_userid":"zhangsan","calendar_id":"primary","secret":"super-secret"}"#
+                        .to_string(),
+                ),
             },
         )
         .expect("account should upsert");
+        let config = account.config.expect("config should be stored");
+        assert!(config.contains("ww"));
+        assert!(!config.contains("super-secret"));
         let result = sync_now(&conn, "wecom".to_string()).expect("sync status should return");
         assert_eq!(result.status, "needs_auth");
-        assert!(result.message.contains("WeCom"));
+        assert!(result.message.contains("Secret"));
         assert_ne!(result.status, "synced");
     }
 }

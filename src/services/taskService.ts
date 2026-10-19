@@ -12,11 +12,13 @@ import {
   SaveFeishuSettingsInput,
   SaveGoogleSettingsInput,
   SaveMacosCalendarSettingsInput,
+  SaveWecomSettingsInput,
   SyncAccount,
   SyncProvider,
   SyncRunResult,
   SetTaskSyncInput,
   Task,
+  WecomConnection,
   TaskSyncState,
   UpsertSyncAccountInput,
   UpdateTaskInput,
@@ -99,7 +101,9 @@ export const syncService = {
         ? 'macOS Calendar sync is only available on macOS.'
         : input.provider === 'feishu'
           ? 'Feishu Calendar sync is available in the desktop app only.'
-          : 'Calendar sync conflict resolution is available in the desktop app only.',
+          : input.provider === 'wecom'
+            ? 'WeCom Calendar sync is available in the desktop app only.'
+            : 'Calendar sync conflict resolution is available in the desktop app only.',
     )),
   macosStatus: () => hasTauri
     ? invoke<MacosCalendarConnection>('macos_calendar_status')
@@ -122,6 +126,18 @@ export const syncService = {
   disconnectFeishu: () => hasTauri
     ? invoke<FeishuConnection>('disconnect_feishu_calendar')
     : Promise.reject(new Error('Feishu Calendar sync is available in the desktop app only.')),
+  wecomStatus: () => hasTauri
+    ? invoke<WecomConnection>('wecom_connection_status')
+    : local(readLocalWecomConnection),
+  saveWecomSettings: (input: SaveWecomSettingsInput) => hasTauri
+    ? invoke<WecomConnection>('save_wecom_settings', { input })
+    : Promise.reject(new Error('WeCom Calendar sync is available in the desktop app only.')),
+  connectWecom: () => hasTauri
+    ? invoke<WecomConnection>('connect_wecom_calendar')
+    : Promise.reject(new Error('WeCom Calendar sync is available in the desktop app only.')),
+  disconnectWecom: () => hasTauri
+    ? invoke<WecomConnection>('disconnect_wecom_calendar')
+    : Promise.reject(new Error('WeCom Calendar sync is available in the desktop app only.')),
 };
 
 function local<T>(fn: () => T): Promise<T> {
@@ -275,7 +291,11 @@ function readLocalGoogleConnection(): GoogleConnection {
 
 function readSyncAccounts(): SyncAccount[] {
   const existing = readJson<SyncAccount[]>(syncKey, []);
-  if (existing.length > 0) return existing;
+  if (existing.length > 0) {
+    return existing.map((account) => account.provider === 'wecom'
+      ? { ...account, config: publicWecomConfig(account.config) }
+      : account);
+  }
   return ['feishu', 'macos', 'wecom', 'google'].map((provider) => ({
     id: provider,
     provider: provider as SyncProvider,
@@ -290,11 +310,12 @@ function writeSyncAccounts(accounts: SyncAccount[]) {
 
 function upsertLocalSyncAccount(input: UpsertSyncAccountInput): SyncAccount {
   const accounts = readSyncAccounts();
+  const config = input.provider === 'wecom' ? publicWecomConfig(input.config) : input.config;
   const account: SyncAccount = {
     id: input.provider,
     provider: input.provider,
     enabled: input.enabled,
-    config: input.config,
+    config,
     status: input.enabled ? 'pending_auth' : 'not_configured',
   };
   writeSyncAccounts(accounts.map((item) => item.provider === input.provider ? account : item));
@@ -323,6 +344,58 @@ function readLocalFeishuConnection(): FeishuConnection {
     has_app_secret: false,
     redirect_uri: 'http://127.0.0.1:43821/callback',
     last_error: 'Feishu Calendar sync is available in the desktop app only.',
+  };
+}
+
+function publicWecomConfig(config?: string): string | undefined {
+  if (!config) return config;
+  try {
+    const parsed = JSON.parse(config) as {
+      corp_id?: string;
+      agent_id?: string;
+      organizer_userid?: string;
+      calendar_id?: string;
+    };
+    return JSON.stringify({
+      corp_id: parsed.corp_id ?? '',
+      agent_id: parsed.agent_id ?? '',
+      organizer_userid: parsed.organizer_userid ?? '',
+      calendar_id: parsed.calendar_id || 'primary',
+    });
+  } catch {
+    return undefined;
+  }
+}
+
+function readLocalWecomConnection(): WecomConnection {
+  const account = readSyncAccounts().find((item) => item.provider === 'wecom');
+  let corpId = '';
+  let agentId = '';
+  let organizerUserId = '';
+  let calendarId = 'primary';
+  try {
+    const parsed = JSON.parse(account?.config || '{}') as {
+      corp_id?: string;
+      agent_id?: string;
+      organizer_userid?: string;
+      calendar_id?: string;
+    };
+    corpId = parsed.corp_id ?? '';
+    agentId = parsed.agent_id ?? '';
+    organizerUserId = parsed.organizer_userid ?? '';
+    calendarId = parsed.calendar_id || 'primary';
+  } catch {
+    corpId = '';
+  }
+  return {
+    status: 'not_configured',
+    connected: false,
+    corp_id: corpId,
+    agent_id: agentId,
+    organizer_userid: organizerUserId,
+    calendar_id: calendarId,
+    has_secret: false,
+    last_error: 'WeCom Calendar sync is available in the desktop app only.',
   };
 }
 
@@ -372,6 +445,14 @@ function syncLocalProvider(provider: SyncProvider): SyncRunResult {
       provider,
       status: 'error',
       message: 'Feishu Calendar sync is available in the desktop app only.',
+      affected_tasks: 0,
+    };
+  }
+  if (provider === 'wecom') {
+    return {
+      provider,
+      status: 'error',
+      message: 'WeCom Calendar sync is available in the desktop app only.',
       affected_tasks: 0,
     };
   }

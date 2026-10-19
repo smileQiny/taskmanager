@@ -3,7 +3,8 @@ use tauri::State;
 use crate::models::sync::{
     FeishuConnection, GoogleConnection, MacosCalendarConnection, ResolveSyncConflictInput,
     SaveFeishuSettingsInput, SaveGoogleSettingsInput, SaveMacosCalendarSettingsInput,
-    SetTaskSyncInput, SyncAccount, SyncRunResult, TaskSyncState, UpsertSyncAccountInput,
+    SaveWecomSettingsInput, SetTaskSyncInput, SyncAccount, SyncRunResult, TaskSyncState,
+    UpsertSyncAccountInput, WecomConnection,
 };
 use crate::modules::feishu_calendar::{self, HttpCalendar as FeishuCalendar};
 use crate::modules::feishu_oauth::{self, endpoints_for};
@@ -12,6 +13,7 @@ use crate::modules::google_oauth::{interactive_authorization, refresh_access_tok
 use crate::modules::macos_calendar;
 use crate::modules::sync as sync_module;
 use crate::modules::token_store::{GoogleTokens, TokenStore};
+use crate::modules::wecom_calendar::{self, HttpCalendar as WecomCalendar};
 use crate::AppState;
 
 #[tauri::command]
@@ -121,6 +123,40 @@ pub fn upsert_sync_account(
             .find(|account| account.provider == macos_calendar::MACOS_PROVIDER)
             .ok_or_else(|| "macos account missing".to_string());
     }
+    if input.provider == wecom_calendar::WECOM_PROVIDER {
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        let current = sync_module::list_accounts(&conn)
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .find(|account| account.provider == wecom_calendar::WECOM_PROVIDER);
+        let config = wecom_calendar::parse_public_config(
+            input.config.as_deref().or(current
+                .as_ref()
+                .and_then(|account| account.config.as_deref())),
+        );
+        wecom_calendar::save_settings(
+            &conn,
+            &store,
+            &SaveWecomSettingsInput {
+                corp_id: config.corp_id,
+                agent_id: config.agent_id,
+                secret: None,
+                organizer_userid: config.organizer_userid,
+                calendar_id: Some(config.calendar_id),
+                enabled: Some(input.enabled),
+            },
+            current
+                .as_ref()
+                .map(|account| account.enabled)
+                .unwrap_or(false),
+        )
+        .map_err(|e| e.to_string())?;
+        return sync_module::list_accounts(&conn)
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .find(|account| account.provider == wecom_calendar::WECOM_PROVIDER)
+            .ok_or_else(|| "wecom account missing".to_string());
+    }
     sync_module::upsert_account(&conn, input).map_err(|e| e.to_string())
 }
 
@@ -137,6 +173,9 @@ pub async fn sync_provider_now(
     }
     if provider == feishu_calendar::FEISHU_PROVIDER {
         return sync_feishu(&state).await;
+    }
+    if provider == wecom_calendar::WECOM_PROVIDER {
+        return sync_wecom(&state).await;
     }
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     sync_module::sync_now(&conn, provider).map_err(|e| e.to_string())
@@ -240,6 +279,9 @@ pub async fn resolve_task_sync_conflict(
     }
     if input.provider == feishu_calendar::FEISHU_PROVIDER {
         return resolve_feishu(&state, input).await;
+    }
+    if input.provider == wecom_calendar::WECOM_PROVIDER {
+        return resolve_wecom(&state, input).await;
     }
     if input.provider != google_calendar::GOOGLE_PROVIDER {
         return Err(format!("{} sync is not implemented", input.provider));
@@ -831,4 +873,267 @@ fn feishu_account(conn: &rusqlite::Connection) -> Result<SyncAccount, String> {
         .into_iter()
         .find(|account| account.provider == feishu_calendar::FEISHU_PROVIDER)
         .ok_or_else(|| "feishu account missing".to_string())
+}
+
+#[tauri::command]
+pub fn wecom_connection_status(state: State<AppState>) -> Result<WecomConnection, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+    let account = wecom_account(&conn)?;
+    wecom_calendar::connection_view(&conn, &store, &account).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn save_wecom_settings(
+    state: State<AppState>,
+    input: SaveWecomSettingsInput,
+) -> Result<WecomConnection, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+    let account = wecom_account(&conn)?;
+    wecom_calendar::save_settings(&conn, &store, &input, account.enabled)
+        .map_err(|e| e.to_string())?;
+    let account = wecom_account(&conn)?;
+    wecom_calendar::connection_view(&conn, &store, &account).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn connect_wecom_calendar(state: State<'_, AppState>) -> Result<WecomConnection, String> {
+    let (corp_id, secret, agent_id, organizer_userid, calendar_id) = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        let account = wecom_account(&conn)?;
+        let config = wecom_calendar::parse_public_config(account.config.as_deref());
+        if config.corp_id.is_empty() {
+            return Err("WeCom Calendar requires a CorpID".to_string());
+        }
+        let Some(agent_id) = wecom_calendar::parse_agent_id(&config.agent_id) else {
+            return Err("WeCom Calendar requires an AgentId".to_string());
+        };
+        if config.organizer_userid.is_empty() || config.organizer_userid.len() > 64 {
+            return Err("WeCom Calendar requires an organizer userid".to_string());
+        }
+        let secret = store
+            .load_wecom_secret(&conn)
+            .map_err(|e| e.to_string())?
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| "WeCom Calendar requires a corp Secret".to_string())?;
+        (
+            config.corp_id,
+            secret,
+            agent_id,
+            config.organizer_userid,
+            config.calendar_id,
+        )
+    };
+    let tokens = wecom_calendar::request_corp_token(&corp_id, &secret)
+        .await
+        .map_err(|e| e.to_string())?;
+    let resolved_calendar = wecom_calendar::ensure_app_calendar(
+        &tokens.access_token,
+        Some(agent_id),
+        &organizer_userid,
+        &calendar_id,
+    )
+    .await
+    .map_err(|e| e.to_string())?;
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+    store
+        .save_wecom_tokens(&conn, &tokens)
+        .map_err(|e| e.to_string())?;
+    wecom_calendar::store_calendar_id(&conn, &resolved_calendar).map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE sync_accounts SET enabled = 1 WHERE provider = 'wecom'",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    google_calendar::set_provider_feedback(
+        &conn,
+        wecom_calendar::WECOM_PROVIDER,
+        "authenticated",
+        None,
+    )
+    .map_err(|e| e.to_string())?;
+    let account = wecom_account(&conn)?;
+    wecom_calendar::connection_view(&conn, &store, &account).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn disconnect_wecom_calendar(state: State<AppState>) -> Result<WecomConnection, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+    store
+        .delete_wecom_tokens(&conn)
+        .map_err(|e| e.to_string())?;
+    wecom_calendar::mark_needs_auth(
+        &conn,
+        "WeCom Calendar was disconnected. Connect again to sync.",
+    )
+    .map_err(|e| e.to_string())?;
+    let account = wecom_account(&conn)?;
+    wecom_calendar::connection_view(&conn, &store, &account).map_err(|e| e.to_string())
+}
+
+async fn sync_wecom(state: &State<'_, AppState>) -> Result<SyncRunResult, String> {
+    {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        let account = wecom_account(&conn)?;
+        let has_secret = store
+            .load_wecom_secret(&conn)
+            .map_err(|e| e.to_string())?
+            .is_some();
+        let has_tokens = store
+            .load_wecom_tokens(&conn)
+            .map_err(|e| e.to_string())?
+            .is_some();
+        if let Some(blocked) =
+            wecom_calendar::blocked_result(&conn, &account, has_secret, has_tokens)
+                .map_err(|e| e.to_string())?
+        {
+            return Ok(blocked);
+        }
+    }
+    let prepared = prepare_wecom_access(state).await?;
+    let api = WecomCalendar::new(
+        prepared.access_token,
+        prepared.agent_id,
+        prepared.organizer_userid,
+        local_offset_seconds(),
+    );
+    let snapshots = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        wecom_calendar::load_wecom_snapshots(&conn).map_err(|e| e.to_string())?
+    };
+    let plans = wecom_calendar::compute_plans(
+        &api,
+        &prepared.calendar_id,
+        local_offset_seconds(),
+        snapshots,
+    )
+    .await
+    .map_err(|err| map_wecom_auth_error(state, err.to_string()))?;
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    wecom_calendar::apply_plans(&conn, &plans).map_err(|e| e.to_string())
+}
+
+async fn resolve_wecom(
+    state: &State<'_, AppState>,
+    input: ResolveSyncConflictInput,
+) -> Result<SyncRunResult, String> {
+    let (prepared, snapshot) = {
+        let prepared = prepare_wecom_access(state).await?;
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let snapshot = wecom_calendar::load_wecom_snapshots(&conn)
+            .map_err(|e| e.to_string())?
+            .into_iter()
+            .find(|item| item.task.id == input.task_id)
+            .ok_or_else(|| "task is not opted in to WeCom Calendar".to_string())?;
+        (prepared, snapshot)
+    };
+    let api = WecomCalendar::new(
+        prepared.access_token,
+        prepared.agent_id,
+        prepared.organizer_userid,
+        local_offset_seconds(),
+    );
+    let plan = wecom_calendar::plan_resolution(
+        &api,
+        &prepared.calendar_id,
+        local_offset_seconds(),
+        snapshot,
+        &input.strategy,
+    )
+    .await
+    .map_err(|err| map_wecom_auth_error(state, err.to_string()))?;
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    wecom_calendar::apply_plans(&conn, &[plan]).map_err(|e| e.to_string())
+}
+
+struct PreparedWecom {
+    calendar_id: String,
+    access_token: String,
+    agent_id: Option<u64>,
+    organizer_userid: String,
+}
+
+async fn prepare_wecom_access(state: &State<'_, AppState>) -> Result<PreparedWecom, String> {
+    let (corp_id, secret, agent_id, organizer_userid, calendar_id, tokens) = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        let account = wecom_account(&conn)?;
+        let config = wecom_calendar::parse_public_config(account.config.as_deref());
+        let secret = store.load_wecom_secret(&conn).map_err(|e| e.to_string())?;
+        let tokens = store.load_wecom_tokens(&conn).map_err(|e| e.to_string())?;
+        (
+            config.corp_id,
+            secret,
+            wecom_calendar::parse_agent_id(&config.agent_id),
+            config.organizer_userid,
+            config.calendar_id,
+            tokens,
+        )
+    };
+    if corp_id.is_empty() {
+        return Err("WeCom Calendar sync requires a CorpID before live sync.".to_string());
+    }
+    let Some(secret) = secret.filter(|value| !value.is_empty()) else {
+        return Err("WeCom Calendar sync requires a corp Secret before live sync.".to_string());
+    };
+    if organizer_userid.is_empty() {
+        return Err(
+            "WeCom Calendar sync requires an organizer userid before live sync.".to_string(),
+        );
+    }
+    if !wecom_calendar::concrete_calendar_id(&calendar_id) {
+        return Err(
+            "WeCom sync requires an app calendar. Connect WeCom to create one before live sync."
+                .to_string(),
+        );
+    }
+    let fresh = match tokens {
+        Some(tokens) if tokens.expires_at > chrono::Utc::now().timestamp() + 60 => tokens,
+        _ => match wecom_calendar::request_corp_token(&corp_id, &secret).await {
+            Ok(tokens) => tokens,
+            Err(err) => return Err(map_wecom_auth_error(state, err.to_string())),
+        },
+    };
+    {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let store = TokenStore::for_app(&state.data_dir).map_err(|e| e.to_string())?;
+        store
+            .save_wecom_tokens(&conn, &fresh)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(PreparedWecom {
+        calendar_id,
+        access_token: fresh.access_token,
+        agent_id,
+        organizer_userid,
+    })
+}
+
+fn map_wecom_auth_error(state: &State<'_, AppState>, message: String) -> String {
+    if message.contains("status 401") || message.contains("invalid_grant") {
+        if let Ok(conn) = state.db.lock() {
+            if let Ok(store) = TokenStore::for_app(&state.data_dir) {
+                let _ = store.delete_wecom_tokens(&conn);
+            }
+            let _ = wecom_calendar::mark_needs_auth(
+                &conn,
+                "WeCom authorization expired. Connect WeCom Calendar again.",
+            );
+        }
+        return "WeCom authorization expired. Connect WeCom Calendar again.".to_string();
+    }
+    message
+}
+
+fn wecom_account(conn: &rusqlite::Connection) -> Result<SyncAccount, String> {
+    sync_module::list_accounts(conn)
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .find(|account| account.provider == wecom_calendar::WECOM_PROVIDER)
+        .ok_or_else(|| "wecom account missing".to_string())
 }

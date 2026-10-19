@@ -86,6 +86,30 @@ impl TokenStore {
         self.delete(conn, "feishu.app_secret")
     }
 
+    pub fn save_wecom_tokens(&self, conn: &Connection, tokens: &GoogleTokens) -> Result<()> {
+        self.save_json(conn, "wecom.tokens", tokens)
+    }
+
+    pub fn load_wecom_tokens(&self, conn: &Connection) -> Result<Option<GoogleTokens>> {
+        self.load_json(conn, "wecom.tokens")
+    }
+
+    pub fn delete_wecom_tokens(&self, conn: &Connection) -> Result<()> {
+        self.delete(conn, "wecom.tokens")
+    }
+
+    pub fn save_wecom_secret(&self, conn: &Connection, secret: &str) -> Result<()> {
+        self.save_json(conn, "wecom.secret", &secret.to_string())
+    }
+
+    pub fn load_wecom_secret(&self, conn: &Connection) -> Result<Option<String>> {
+        self.load_json(conn, "wecom.secret")
+    }
+
+    pub fn delete_wecom_secret(&self, conn: &Connection) -> Result<()> {
+        self.delete(conn, "wecom.secret")
+    }
+
     fn save_json<T: Serialize>(&self, conn: &Connection, id: &str, value: &T) -> Result<()> {
         let plaintext = serde_json::to_string(value)?;
         if self.prefer_keyring && save_keyring(id, &plaintext).is_ok() {
