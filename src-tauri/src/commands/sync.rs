@@ -452,8 +452,8 @@ pub fn save_macos_calendar_settings(
 }
 
 #[tauri::command]
-pub fn request_macos_calendar_access(
-    state: State<AppState>,
+pub async fn request_macos_calendar_access(
+    state: State<'_, AppState>,
 ) -> Result<MacosCalendarConnection, String> {
     if !macos_calendar::platform_supported() {
         let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -466,22 +466,28 @@ pub fn request_macos_calendar_access(
     }
     #[cfg(target_os = "macos")]
     {
-        let access =
-            crate::modules::macos_eventkit::request_full_access().map_err(|e| e.to_string())?;
-        let conn = state.db.lock().map_err(|e| e.to_string())?;
-        let account = macos_account(&conn)?;
-        macos_calendar::save_settings(
-            &conn,
-            &SaveMacosCalendarSettingsInput {
-                calendar_id: None,
-                calendar_name: None,
-                enabled: Some(true),
-            },
-            account.enabled,
-            access,
-        )
-        .map_err(|e| e.to_string())?;
-        let account = macos_account(&conn)?;
+        // Resolve permission before taking the database lock. The prompt can
+        // sit open until the user decides, and the connection mutex must stay
+        // available to the rest of the app during that wait.
+        let access = crate::modules::macos_eventkit::request_full_access()
+            .await
+            .map_err(|e| e.to_string())?;
+        let account = {
+            let conn = state.db.lock().map_err(|e| e.to_string())?;
+            let account = macos_account(&conn)?;
+            macos_calendar::save_settings(
+                &conn,
+                &SaveMacosCalendarSettingsInput {
+                    calendar_id: None,
+                    calendar_name: None,
+                    enabled: Some(true),
+                },
+                account.enabled,
+                access,
+            )
+            .map_err(|e| e.to_string())?;
+            macos_account(&conn)?
+        };
         let calendars = list_macos_calendars().map_err(|e| e.to_string())?;
         return Ok(macos_calendar::connection_view(&account, access, calendars));
     }
