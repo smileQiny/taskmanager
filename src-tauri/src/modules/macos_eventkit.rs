@@ -8,7 +8,8 @@ use objc2::rc::Retained;
 use objc2::runtime::{Bool, NSObjectProtocol};
 use objc2::sel;
 use objc2_event_kit::{EKEntityType, EKEvent, EKEventStore, EKSpan};
-use objc2_foundation::{NSDate, NSError, NSString, NSURL};
+use objc2_foundation::{NSArray, NSDate, NSError, NSPredicate, NSString, NSURL};
+use std::collections::HashSet;
 use std::time::Duration;
 
 use crate::modules::google_calendar::{CalendarApi, EventDraft, EventMoment, RemoteEvent};
@@ -147,6 +148,49 @@ impl CalendarApi for EventKitApi {
                     .saveEvent_span_commit_error(&event, EKSpan::ThisEvent, true)
                     .map_err(|err| anyhow!(err.localizedDescription().to_string()))?;
                 remote_from_event(&event)
+            })
+        })
+        .await
+        .map_err(|err| anyhow!(err))?
+    }
+
+    async fn list_events(
+        &self,
+        calendar_id: &str,
+        start_unix: i64,
+        end_unix: i64,
+    ) -> Result<Vec<RemoteEvent>> {
+        let calendar_id = chosen_calendar_id(calendar_id, &self.calendar_id);
+        let calendar_name = self.calendar_name.clone();
+        tokio::task::spawn_blocking(move || {
+            with_store(|store| unsafe {
+                let calendar = resolve_calendar(store, &calendar_id, &calendar_name)?;
+                let start = NSDate::dateWithTimeIntervalSince1970(start_unix as f64);
+                let end = NSDate::dateWithTimeIntervalSince1970(end_unix as f64);
+                let calendars = NSArray::arrayWithObject(calendar.as_ref());
+                let predicate: Retained<NSPredicate> = store
+                    .predicateForEventsWithStartDate_endDate_calendars(
+                        &start,
+                        &end,
+                        Some(&calendars),
+                    );
+                let found = store.eventsMatchingPredicate(&predicate);
+                let mut events = Vec::new();
+                let mut seen = HashSet::new();
+                for index in 0..found.count() {
+                    let event = found.objectAtIndex(index);
+                    let Some(identifier) = event.eventIdentifier() else {
+                        continue;
+                    };
+                    if identifier.to_string().is_empty() {
+                        continue;
+                    }
+                    let remote = remote_from_event(&event)?;
+                    if seen.insert(remote.id.clone()) {
+                        events.push(remote);
+                    }
+                }
+                Ok(events)
             })
         })
         .await

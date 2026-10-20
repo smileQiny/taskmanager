@@ -109,6 +109,7 @@ pub fn upsert_sync_account(
                 calendar_id: Some(config.calendar_id),
                 calendar_name: Some(config.calendar_name),
                 enabled: Some(input.enabled),
+                sync_direction: Some(config.sync_direction),
             },
             current
                 .as_ref()
@@ -481,6 +482,7 @@ pub async fn request_macos_calendar_access(
                     calendar_id: None,
                     calendar_name: None,
                     enabled: Some(true),
+                    sync_direction: None,
                 },
                 account.enabled,
                 access,
@@ -509,38 +511,28 @@ async fn sync_macos(state: &State<'_, AppState>) -> Result<SyncRunResult, String
     }
     #[cfg(target_os = "macos")]
     {
-        let (calendar_id, calendar_name, snapshots) = {
-            let conn = state.db.lock().map_err(|e| e.to_string())?;
-            let account = macos_account(&conn)?;
-            let access = macos_calendar::live_access();
-            if let Some(blocked) = macos_calendar::blocked_result(&conn, &account, access)
-                .map_err(|e| e.to_string())?
-            {
-                return Ok(blocked);
-            }
-            let config = macos_calendar::parse_config(account.config.as_deref());
-            let snapshots =
-                google_calendar::load_provider_snapshots(&conn, macos_calendar::MACOS_PROVIDER)
-                    .map_err(|e| e.to_string())?;
-            (config.calendar_id, config.calendar_name, snapshots)
-        };
-        let api =
-            crate::modules::macos_eventkit::EventKitApi::new(calendar_id.clone(), calendar_name);
-        let outcomes = google_calendar::compute_outcomes(
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let account = macos_account(&conn)?;
+        let access = macos_calendar::live_access();
+        if let Some(blocked) =
+            macos_calendar::blocked_result(&conn, &account, access).map_err(|e| e.to_string())?
+        {
+            return Ok(blocked);
+        }
+        let config = macos_calendar::parse_config(account.config.as_deref());
+        let api = crate::modules::macos_eventkit::EventKitApi::new(
+            config.calendar_id.clone(),
+            config.calendar_name,
+        );
+        macos_calendar::run_macos_sync(
+            &conn,
             &api,
-            &calendar_id,
+            &config.calendar_id,
+            &config.sync_direction,
+            chrono::Utc::now().timestamp(),
             local_offset_seconds(),
-            snapshots,
         )
         .await
-        .map_err(|e| e.to_string())?;
-        let conn = state.db.lock().map_err(|e| e.to_string())?;
-        google_calendar::apply_provider_outcomes(
-            &conn,
-            macos_calendar::MACOS_PROVIDER,
-            "macOS Calendar",
-            &outcomes,
-        )
         .map_err(|e| e.to_string())
     }
 }
@@ -559,7 +551,7 @@ async fn resolve_macos(
     }
     #[cfg(target_os = "macos")]
     {
-        let (calendar_id, calendar_name, snapshot) = {
+        let (calendar_id, calendar_name) = {
             let conn = state.db.lock().map_err(|e| e.to_string())?;
             let account = macos_account(&conn)?;
             let access = macos_calendar::live_access();
@@ -572,32 +564,20 @@ async fn resolve_macos(
                 );
             }
             let config = macos_calendar::parse_config(account.config.as_deref());
-            let snapshot =
-                google_calendar::load_provider_snapshots(&conn, macos_calendar::MACOS_PROVIDER)
-                    .map_err(|e| e.to_string())?
-                    .into_iter()
-                    .find(|item| item.task.id == input.task_id)
-                    .ok_or_else(|| "task is not opted in to macOS Calendar".to_string())?;
-            (config.calendar_id, config.calendar_name, snapshot)
+            (config.calendar_id, config.calendar_name)
         };
         let api =
             crate::modules::macos_eventkit::EventKitApi::new(calendar_id.clone(), calendar_name);
-        let outcome = google_calendar::plan_resolution(
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        macos_calendar::resolve_macos_conflict(
+            &conn,
             &api,
             &calendar_id,
-            local_offset_seconds(),
-            snapshot,
+            &input.task_id,
             &input.strategy,
+            local_offset_seconds(),
         )
         .await
-        .map_err(|e| e.to_string())?;
-        let conn = state.db.lock().map_err(|e| e.to_string())?;
-        google_calendar::apply_provider_outcomes(
-            &conn,
-            macos_calendar::MACOS_PROVIDER,
-            "macOS Calendar",
-            &[outcome],
-        )
         .map_err(|e| e.to_string())
     }
 }

@@ -95,6 +95,18 @@ pub trait CalendarApi: Send + Sync {
         event_id: &str,
         draft: &EventDraft,
     ) -> Result<RemoteEvent>;
+
+    /// Events overlapping `[start_unix, end_unix]` on one calendar.
+    /// Providers that still sync from per-task mappings keep the empty default.
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    async fn list_events(
+        &self,
+        _calendar_id: &str,
+        _start_unix: i64,
+        _end_unix: i64,
+    ) -> Result<Vec<RemoteEvent>> {
+        Ok(Vec::new())
+    }
 }
 
 pub struct HttpCalendar {

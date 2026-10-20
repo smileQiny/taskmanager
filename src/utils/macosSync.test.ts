@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { macosActions, macosConnectionPhase, macosPermissionHint } from './macosSync';
+import {
+  MACOS_CONFLICT_ACTIONS,
+  macosActions,
+  macosConnectionPhase,
+  macosPermissionHint,
+  parseMacosSyncDirection,
+} from './macosSync';
 
 describe('macOS calendar connection state', () => {
   it('stays macOS-only when the host cannot use EventKit', () => {
@@ -67,5 +73,24 @@ describe('macOS calendar connection state', () => {
       status: 'not_configured',
       busy: 'idle',
     })).toBe('not_configured');
+  });
+
+  it('parses sync direction and lists four macOS conflict actions', () => {
+    expect(parseMacosSyncDirection(undefined)).toBe('bidirectional');
+    expect(parseMacosSyncDirection('nope')).toBe('bidirectional');
+    expect(parseMacosSyncDirection('local_to_remote')).toBe('local_to_remote');
+    expect(parseMacosSyncDirection('remote_to_local')).toBe('remote_to_local');
+    expect(MACOS_CONFLICT_ACTIONS.map((action) => action.label)).toEqual([
+      '保留本地',
+      '采用日历',
+      '保留全部（重命名）',
+      '保留全部（留最新）',
+    ]);
+    expect(MACOS_CONFLICT_ACTIONS.map((action) => action.strategy)).toEqual([
+      'local',
+      'remote',
+      'keep_both_rename',
+      'keep_both_newest',
+    ]);
   });
 });

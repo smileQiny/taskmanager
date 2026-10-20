@@ -8,7 +8,7 @@ import { SyncAccount, SyncProvider } from '../types/task';
 import { minCockpitOpacity, maxCockpitOpacity } from '../utils/cockpitTransparency';
 import { googleActions, googleConnectionPhase, isDesktopRuntime } from '../utils/googleSync';
 import { feishuActions, feishuConnectionPhase, FEISHU_REDIRECT_URI } from '../utils/feishuSync';
-import { macosActions, macosConnectionPhase, macosPermissionHint } from '../utils/macosSync';
+import { MACOS_SYNC_DIRECTIONS, macosActions, macosConnectionPhase, macosPermissionHint, parseMacosSyncDirection } from '../utils/macosSync';
 import { wecomActions, wecomConnectionPhase } from '../utils/wecomSync';
 import { FeishuConnection, MacosCalendarConnection, WecomConnection } from '../types/task';
 
@@ -21,7 +21,7 @@ const providerLabels: Record<SyncProvider, string> = {
 
 const providerDescriptions: Record<SyncProvider, string> = {
   feishu: '桌面端通过 PKCE 和固定回环地址授权后，按任务勾选与飞书或 Lark 日历双向同步。',
-  macos: '仅 macOS。授权完整日历访问后，按任务勾选与「日历」双向同步。',
+  macos: '仅 macOS。开启后自动同步所有带开始和结束时间的本地任务（含已完成），以及所选日历在过去 90 天到未来 180 天内的事件。',
   wecom: '桌面端使用企业自建应用凭证同步已勾选任务。企业微信没有用户 OAuth 日历范围，日程写到本应用创建的日历。',
   google: '桌面端通过 PKCE 授权后，按任务勾选与 Google Calendar 双向同步。',
 };
@@ -222,6 +222,12 @@ export function SettingsPage() {
                     calendarId,
                     calendarName,
                     enabled: account.enabled,
+                  }).catch(() => undefined)}
+                  onDirection={(syncDirection) => void saveMacosCalendar({
+                    calendarId: macosConnection?.calendar_id,
+                    calendarName: macosConnection?.calendar_name,
+                    enabled: account.enabled,
+                    syncDirection,
                   }).catch(() => undefined)}
                   onRequestAccess={() => void requestMacosAccess().catch(() => undefined)}
                   onSync={() => void syncNow(account.provider)}
@@ -660,6 +666,7 @@ function MacosSyncRow({
   busy,
   onToggle,
   onSelectCalendar,
+  onDirection,
   onRequestAccess,
   onSync,
 }: {
@@ -668,6 +675,7 @@ function MacosSyncRow({
   busy: 'idle' | 'requesting' | 'syncing';
   onToggle: (enabled: boolean) => void;
   onSelectCalendar: (calendarId: string, calendarName: string) => void;
+  onDirection: (direction: 'bidirectional' | 'local_to_remote' | 'remote_to_local') => void;
   onRequestAccess: () => void;
   onSync: () => void;
 }) {
@@ -740,6 +748,22 @@ function MacosSyncRow({
           ))}
         </select>
       </label>
+      <label className="form-control">
+        <span className="label-text mb-1 text-slate-500">同步方向</span>
+        <select
+          className="select select-bordered select-sm border-slate-200 bg-white/90"
+          value={parseMacosSyncDirection(connection?.sync_direction)}
+          onChange={(event) => onDirection(parseMacosSyncDirection(event.target.value))}
+          aria-label="macOS 同步方向"
+        >
+          {MACOS_SYNC_DIRECTIONS.map((direction) => (
+            <option key={direction.value} value={direction.value}>{direction.label}</option>
+          ))}
+        </select>
+      </label>
+      <p className="text-xs text-slate-500">
+        双向会同时推送和导入。仅本地 → 日历不会把未映射的日历事件变成任务。仅日历 → 本地不会把仅存在于本地的任务推到日历。
+      </p>
       <div className="flex flex-wrap justify-end gap-2">
         <button className="btn btn-sm" onClick={onRequestAccess} disabled={!actions.requestAccess || busy !== 'idle'}>
           {busy === 'requesting' ? '请求中...' : '请求日历权限'}

@@ -143,10 +143,12 @@ export interface SaveGoogleSettingsInput {
   enabled?: boolean;
 }
 
+export type SyncConflictStrategy = 'local' | 'remote' | 'keep_both_rename' | 'keep_both_newest';
+
 export interface ResolveSyncConflictInput {
   task_id: string;
   provider: SyncProvider;
-  strategy: 'local' | 'remote';
+  strategy: SyncConflictStrategy;
 }
 
 export interface MacosCalendarInfo {
@@ -161,6 +163,7 @@ export interface MacosCalendarConnection {
   permission: 'unsupported' | 'not_determined' | 'restricted' | 'denied' | 'write_only' | 'full_access' | string;
   calendar_id: string;
   calendar_name: string;
+  sync_direction: 'bidirectional' | 'local_to_remote' | 'remote_to_local' | string;
   calendars: MacosCalendarInfo[];
   last_error?: string | null;
 }
@@ -169,6 +172,7 @@ export interface SaveMacosCalendarSettingsInput {
   calendar_id?: string;
   calendar_name?: string;
   enabled?: boolean;
+  sync_direction?: 'bidirectional' | 'local_to_remote' | 'remote_to_local';
 }
 
 export interface FeishuConnection {

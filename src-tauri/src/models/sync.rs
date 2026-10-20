@@ -82,6 +82,7 @@ pub struct MacosCalendarConnection {
     pub permission: String,
     pub calendar_id: String,
     pub calendar_name: String,
+    pub sync_direction: String,
     pub calendars: Vec<MacosCalendarInfo>,
     pub last_error: Option<String>,
 }
@@ -91,6 +92,8 @@ pub struct SaveMacosCalendarSettingsInput {
     pub calendar_id: Option<String>,
     pub calendar_name: Option<String>,
     pub enabled: Option<bool>,
+    #[serde(default)]
+    pub sync_direction: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

@@ -4,6 +4,7 @@ import { CreateTaskInput, SyncProvider, Task, TaskSyncState } from '../../types/
 import { useTaskStore } from '../../stores/taskStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { syncService } from '../../services/taskService';
+import { MACOS_CONFLICT_ACTIONS } from '../../utils/macosSync';
 
 interface TaskDetailPanelProps {
   task?: Task | null;
@@ -220,6 +221,39 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
               <div className="grid grid-cols-2 gap-2">
                 {syncProviders.map(({ provider, label }) => {
                   const state = syncStates.find((item) => item.provider === provider);
+                  if (provider === 'macos') {
+                    return (
+                      <div key={provider} className="col-span-2 rounded-lg bg-slate-50/90 px-2 py-2 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-700">{label}</span>
+                          <span className="text-xs text-slate-400">{macosStatusText(task, state)}</span>
+                        </div>
+                        {state?.sync_status === 'conflict' && (
+                          <div className="mt-2 space-y-2">
+                            <p className="text-xs text-amber-700">本地和 macOS 日历都改过，未自动覆盖。</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {MACOS_CONFLICT_ACTIONS.map((action) => (
+                                <button
+                                  key={action.strategy}
+                                  type="button"
+                                  className="btn btn-xs"
+                                  onClick={() => void resolveSyncConflict(provider, task.id, action.strategy).catch((error) => setSyncError(String(error)))}
+                                >
+                                  {action.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {state?.sync_status === 'needs_auth' && (
+                          <p className="mt-2 text-xs text-amber-700">需要 macOS 日历的完整访问权限。</p>
+                        )}
+                        {state?.sync_status === 'error' && (
+                          <p className="mt-2 text-xs text-rose-600">同步失败。请在设置中检查日历权限后重试。</p>
+                        )}
+                      </div>
+                    );
+                  }
                   return (
                     <div key={provider} className="rounded-lg bg-slate-50/90 px-2 py-2 text-sm">
                       <label className="flex items-center justify-between">
@@ -234,7 +268,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                           onChange={(event) => void setTaskSync(task.id, provider, event.target.checked, setSyncStates, setSyncError)}
                         />
                       </label>
-                      {(provider === 'google' || provider === 'macos' || provider === 'feishu' || provider === 'wecom') && state?.sync_status === 'conflict' && (
+                      {(provider === 'google' || provider === 'feishu' || provider === 'wecom') && state?.sync_status === 'conflict' && (
                         <div className="mt-2 space-y-2">
                           <p className="text-xs text-amber-700">
                             {provider === 'google'
@@ -243,7 +277,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                                 ? '本地和飞书日历都改过，未自动覆盖。'
                                 : provider === 'wecom'
                                   ? '本地和企业微信都改过，未自动覆盖。'
-                                  : '本地和 macOS 日历都改过，未自动覆盖。'}
+                                  : '本地和日历都改过，未自动覆盖。'}
                           </p>
                           <div className="flex gap-2">
                             <button
@@ -258,7 +292,7 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                               className="btn btn-xs"
                               onClick={() => void resolveSyncConflict(provider, task.id, 'remote').catch((error) => setSyncError(String(error)))}
                             >
-                              {provider === 'google' ? '采用 Google' : provider === 'feishu' ? '采用飞书' : provider === 'wecom' ? '采用企业微信' : '采用日历'}
+                              {provider === 'google' ? '采用 Google' : provider === 'feishu' ? '采用飞书' : '采用企业微信'}
                             </button>
                           </div>
                         </div>
@@ -274,12 +308,6 @@ export function TaskDetailPanel({ task, defaults }: TaskDetailPanelProps) {
                       )}
                       {provider === 'wecom' && state?.sync_status === 'error' && (
                         <p className="mt-2 text-xs text-rose-600">同步失败。请在设置中检查企业微信凭证后重试。</p>
-                      )}
-                      {provider === 'macos' && state?.sync_status === 'needs_auth' && (
-                        <p className="mt-2 text-xs text-amber-700">需要 macOS 日历的完整访问权限。</p>
-                      )}
-                      {provider === 'macos' && state?.sync_status === 'error' && (
-                        <p className="mt-2 text-xs text-rose-600">同步失败。请在设置中检查日历权限后重试。</p>
                       )}
                     </div>
                   );
@@ -331,6 +359,12 @@ async function setTaskSync(
   } catch (error) {
     setSyncError(String(error));
   }
+}
+
+function macosStatusText(task: Task, state: TaskSyncState | undefined): string {
+  if (task.start_time == null || task.end_time == null) return '缺少起止时间，不会同步';
+  if (!state) return '未同步';
+  return syncStatusLabel(state.sync_status);
 }
 
 function syncStatusLabel(status: string): string {
