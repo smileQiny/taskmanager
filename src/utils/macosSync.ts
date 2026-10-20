@@ -34,6 +34,26 @@ export function macosActions(phase: MacosPhase): { requestAccess: boolean; sync:
   };
 }
 
+export type MacosSyncDirection = 'bidirectional' | 'local_to_remote' | 'remote_to_local';
+
+export const MACOS_SYNC_DIRECTIONS: Array<{ value: MacosSyncDirection; label: string }> = [
+  { value: 'bidirectional', label: '双向' },
+  { value: 'local_to_remote', label: '仅本地 → 日历' },
+  { value: 'remote_to_local', label: '仅日历 → 本地' },
+];
+
+export function parseMacosSyncDirection(value: string | null | undefined): MacosSyncDirection {
+  if (value === 'local_to_remote' || value === 'remote_to_local') return value;
+  return 'bidirectional';
+}
+
+export const MACOS_CONFLICT_ACTIONS: Array<{ strategy: 'local' | 'remote' | 'keep_both_rename' | 'keep_both_newest'; label: string }> = [
+  { strategy: 'local', label: '保留本地' },
+  { strategy: 'remote', label: '采用日历' },
+  { strategy: 'keep_both_rename', label: '保留全部（重命名）' },
+  { strategy: 'keep_both_newest', label: '保留全部（留最新）' },
+];
+
 export function macosPermissionHint(permission: string): string | null {
   switch (permission) {
     case 'denied':

@@ -6,6 +6,7 @@ import {
   MacosCalendarConnection,
   SyncAccount,
   WecomConnection,
+  SyncConflictStrategy,
   SyncProvider,
   SyncRunResult,
 } from '../types/task';
@@ -39,9 +40,9 @@ interface SettingsStore {
   connectGoogle: () => Promise<void>;
   disconnectGoogle: () => Promise<void>;
   resolveGoogleConflict: (taskId: string, strategy: 'local' | 'remote') => Promise<void>;
-  resolveSyncConflict: (provider: SyncProvider, taskId: string, strategy: 'local' | 'remote') => Promise<void>;
+  resolveSyncConflict: (provider: SyncProvider, taskId: string, strategy: SyncConflictStrategy) => Promise<void>;
   refreshMacosConnection: () => Promise<void>;
-  saveMacosCalendar: (input: { calendarId?: string; calendarName?: string; enabled?: boolean }) => Promise<void>;
+  saveMacosCalendar: (input: { calendarId?: string; calendarName?: string; enabled?: boolean; syncDirection?: 'bidirectional' | 'local_to_remote' | 'remote_to_local' }) => Promise<void>;
   requestMacosAccess: () => Promise<void>;
   saveFeishuSettings: (input: { appId: string; calendarId: string; domain: string; appSecret?: string; enabled?: boolean }) => Promise<void>;
   connectFeishu: (input?: { appId: string; calendarId: string; domain: string; appSecret?: string }) => Promise<void>;
@@ -196,7 +197,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
         provider === 'feishu' ? syncService.feishuStatus() : Promise.resolve(useSettingsStore.getState().feishuConnection),
         provider === 'wecom' ? syncService.wecomStatus() : Promise.resolve(useSettingsStore.getState().wecomConnection),
       ]);
-      if (strategy === 'remote') {
+      if (strategy !== 'local') {
         await useTaskStore.getState().fetchTasks();
       }
       set((state) => ({
@@ -224,12 +225,13 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     }
   },
 
-  saveMacosCalendar: async ({ calendarId, calendarName, enabled }) => {
+  saveMacosCalendar: async ({ calendarId, calendarName, enabled, syncDirection }) => {
     try {
       const macosConnection = await syncService.saveMacosSettings({
         calendar_id: calendarId,
         calendar_name: calendarName,
         enabled,
+        sync_direction: syncDirection,
       });
       const syncAccounts = await syncService.listAccounts();
       set({ macosConnection, syncAccounts, error: null });

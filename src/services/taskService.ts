@@ -403,10 +403,16 @@ function readLocalMacosConnection(): MacosCalendarConnection {
   const account = readSyncAccounts().find((item) => item.provider === 'macos');
   let calendarId = '';
   let calendarName = 'Calendar';
+  let syncDirection = 'bidirectional';
   try {
-    const parsed = JSON.parse(account?.config || '{}') as { calendar_id?: string; calendar_name?: string };
+    const parsed = JSON.parse(account?.config || '{}') as {
+      calendar_id?: string;
+      calendar_name?: string;
+      sync_direction?: string;
+    };
     calendarId = parsed.calendar_id ?? '';
     calendarName = parsed.calendar_name || 'Calendar';
+    syncDirection = parsed.sync_direction || 'bidirectional';
   } catch {
     calendarId = '';
   }
@@ -417,6 +423,7 @@ function readLocalMacosConnection(): MacosCalendarConnection {
     permission: 'unsupported',
     calendar_id: calendarId,
     calendar_name: calendarName,
+    sync_direction: syncDirection,
     calendars: [],
     last_error: 'macOS Calendar sync is only available on macOS.',
   };

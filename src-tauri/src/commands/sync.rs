@@ -109,6 +109,7 @@ pub fn upsert_sync_account(
                 calendar_id: Some(config.calendar_id),
                 calendar_name: Some(config.calendar_name),
                 enabled: Some(input.enabled),
+                sync_direction: Some(config.sync_direction),
             },
             current
                 .as_ref()
@@ -481,6 +482,7 @@ pub async fn request_macos_calendar_access(
                     calendar_id: None,
                     calendar_name: None,
                     enabled: Some(true),
+                    sync_direction: None,
                 },
                 account.enabled,
                 access,
@@ -509,7 +511,9 @@ async fn sync_macos(state: &State<'_, AppState>) -> Result<SyncRunResult, String
     }
     #[cfg(target_os = "macos")]
     {
-        let (calendar_id, calendar_name, snapshots) = {
+        // The database mutex guard is `!Send`. Copy the account settings, drop
+        // the guard, and only re-lock around synchronous database phases.
+        let (calendar_id, calendar_name, direction) = {
             let conn = state.db.lock().map_err(|e| e.to_string())?;
             let account = macos_account(&conn)?;
             let access = macos_calendar::live_access();
@@ -519,29 +523,29 @@ async fn sync_macos(state: &State<'_, AppState>) -> Result<SyncRunResult, String
                 return Ok(blocked);
             }
             let config = macos_calendar::parse_config(account.config.as_deref());
-            let snapshots =
-                google_calendar::load_provider_snapshots(&conn, macos_calendar::MACOS_PROVIDER)
-                    .map_err(|e| e.to_string())?;
-            (config.calendar_id, config.calendar_name, snapshots)
+            (
+                config.calendar_id,
+                config.calendar_name,
+                config.sync_direction,
+            )
         };
         let api =
             crate::modules::macos_eventkit::EventKitApi::new(calendar_id.clone(), calendar_name);
-        let outcomes = google_calendar::compute_outcomes(
-            &api,
-            &calendar_id,
-            local_offset_seconds(),
-            snapshots,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+        let now = chrono::Utc::now().timestamp();
+        let offset = local_offset_seconds();
+        let listed = macos_calendar::list_macos_window(&api, &calendar_id, now)
+            .await
+            .map_err(|e| e.to_string())?;
+        let begin = {
+            let conn = state.db.lock().map_err(|e| e.to_string())?;
+            macos_calendar::begin_macos_sync(&conn, listed, &direction)
+                .map_err(|e| e.to_string())?
+        };
+        let outcomes = macos_calendar::collect_remote_outcomes(&api, &calendar_id, offset, &begin)
+            .await
+            .map_err(|e| e.to_string())?;
         let conn = state.db.lock().map_err(|e| e.to_string())?;
-        google_calendar::apply_provider_outcomes(
-            &conn,
-            macos_calendar::MACOS_PROVIDER,
-            "macOS Calendar",
-            &outcomes,
-        )
-        .map_err(|e| e.to_string())
+        macos_calendar::complete_macos_sync(&conn, &begin, outcomes).map_err(|e| e.to_string())
     }
 }
 
@@ -559,7 +563,7 @@ async fn resolve_macos(
     }
     #[cfg(target_os = "macos")]
     {
-        let (calendar_id, calendar_name, snapshot) = {
+        let (calendar_id, calendar_name) = {
             let conn = state.db.lock().map_err(|e| e.to_string())?;
             let account = macos_account(&conn)?;
             let access = macos_calendar::live_access();
@@ -572,33 +576,155 @@ async fn resolve_macos(
                 );
             }
             let config = macos_calendar::parse_config(account.config.as_deref());
-            let snapshot =
-                google_calendar::load_provider_snapshots(&conn, macos_calendar::MACOS_PROVIDER)
-                    .map_err(|e| e.to_string())?
-                    .into_iter()
-                    .find(|item| item.task.id == input.task_id)
-                    .ok_or_else(|| "task is not opted in to macOS Calendar".to_string())?;
-            (config.calendar_id, config.calendar_name, snapshot)
+            (config.calendar_id, config.calendar_name)
         };
+        use crate::modules::google_calendar::{task_to_event, CalendarApi, SyncOutcome};
+        use crate::modules::macos_calendar::NewestStage;
+
         let api =
             crate::modules::macos_eventkit::EventKitApi::new(calendar_id.clone(), calendar_name);
-        let outcome = google_calendar::plan_resolution(
-            &api,
-            &calendar_id,
-            local_offset_seconds(),
-            snapshot,
-            &input.strategy,
-        )
-        .await
-        .map_err(|e| e.to_string())?;
-        let conn = state.db.lock().map_err(|e| e.to_string())?;
-        google_calendar::apply_provider_outcomes(
-            &conn,
-            macos_calendar::MACOS_PROVIDER,
-            "macOS Calendar",
-            &[outcome],
-        )
-        .map_err(|e| e.to_string())
+        let offset = local_offset_seconds();
+        // Load the snapshot, then drop the guard before any EventKit await.
+        let snapshot = {
+            let conn = state.db.lock().map_err(|e| e.to_string())?;
+            macos_calendar::macos_snapshot(&conn, &input.task_id).map_err(|e| e.to_string())?
+        };
+        match input.strategy.as_str() {
+            "local" | "remote" => {
+                if input.strategy == "remote" {
+                    let _remote =
+                        macos_calendar::require_remote(&api, &calendar_id, &snapshot.external_id)
+                            .await
+                            .map_err(|e| e.to_string())?;
+                }
+                let outcome = google_calendar::plan_resolution(
+                    &api,
+                    &calendar_id,
+                    offset,
+                    snapshot,
+                    &input.strategy,
+                )
+                .await
+                .map_err(|e| e.to_string())?;
+                let conn = state.db.lock().map_err(|e| e.to_string())?;
+                macos_calendar::apply_macos_outcomes(&conn, &[outcome]).map_err(|e| e.to_string())
+            }
+            "keep_both_rename" => {
+                let remote =
+                    macos_calendar::require_remote(&api, &calendar_id, &snapshot.external_id)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                let (renamed_task, imported) = {
+                    let conn = state.db.lock().map_err(|e| e.to_string())?;
+                    macos_calendar::stage_keep_both_rename(&conn, &snapshot, &remote)
+                        .map_err(|e| e.to_string())?
+                };
+                let saved = api
+                    .insert_event(&calendar_id, &task_to_event(&renamed_task, offset))
+                    .await
+                    .map_err(|e| e.to_string())?;
+                let conn = state.db.lock().map_err(|e| e.to_string())?;
+                macos_calendar::apply_macos_outcomes(
+                    &conn,
+                    &[
+                        SyncOutcome::Clean {
+                            task_id: renamed_task.id,
+                            external_id: saved.id,
+                            local_updated: renamed_task.updated_at,
+                            remote_updated: saved.updated_unix,
+                        },
+                        SyncOutcome::Clean {
+                            task_id: imported.id,
+                            external_id: remote.id,
+                            local_updated: imported.updated_at,
+                            remote_updated: remote.updated_unix,
+                        },
+                    ],
+                )
+                .map_err(|e| e.to_string())
+            }
+            "keep_both_newest" => {
+                let remote =
+                    macos_calendar::require_remote(&api, &calendar_id, &snapshot.external_id)
+                        .await
+                        .map_err(|e| e.to_string())?;
+                let stage = {
+                    let conn = state.db.lock().map_err(|e| e.to_string())?;
+                    macos_calendar::stage_keep_both_newest(&conn, snapshot, remote)
+                        .map_err(|e| e.to_string())?
+                };
+                match stage {
+                    NewestStage::LocalNewer {
+                        primary,
+                        external_id,
+                        archived,
+                    } => {
+                        let archived_event = api
+                            .insert_event(&calendar_id, &task_to_event(&archived, offset))
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        let saved = api
+                            .update_event(
+                                &calendar_id,
+                                &external_id,
+                                &task_to_event(&primary, offset),
+                            )
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        let conn = state.db.lock().map_err(|e| e.to_string())?;
+                        macos_calendar::apply_macos_outcomes(
+                            &conn,
+                            &[
+                                SyncOutcome::Clean {
+                                    task_id: primary.id,
+                                    external_id: saved.id,
+                                    local_updated: primary.updated_at,
+                                    remote_updated: saved.updated_unix,
+                                },
+                                SyncOutcome::Clean {
+                                    task_id: archived.id,
+                                    external_id: archived_event.id,
+                                    local_updated: archived.updated_at,
+                                    remote_updated: archived_event.updated_unix,
+                                },
+                            ],
+                        )
+                        .map_err(|e| e.to_string())
+                    }
+                    NewestStage::RemoteNewer {
+                        primary,
+                        remote,
+                        archived,
+                    } => {
+                        let archived_event = api
+                            .insert_event(&calendar_id, &task_to_event(&archived, offset))
+                            .await
+                            .map_err(|e| e.to_string())?;
+                        let conn = state.db.lock().map_err(|e| e.to_string())?;
+                        macos_calendar::apply_macos_outcomes(
+                            &conn,
+                            &[
+                                SyncOutcome::Pull {
+                                    task: primary,
+                                    remote,
+                                },
+                                SyncOutcome::Clean {
+                                    task_id: archived.id,
+                                    external_id: archived_event.id,
+                                    local_updated: archived.updated_at,
+                                    remote_updated: archived_event.updated_unix,
+                                },
+                            ],
+                        )
+                        .map_err(|e| e.to_string())
+                    }
+                }
+            }
+            _ => Err(
+                "conflict strategy must be local, remote, keep_both_rename, or keep_both_newest"
+                    .to_string(),
+            ),
+        }
     }
 }
 
