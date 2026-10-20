@@ -421,6 +421,91 @@ pub fn ensure_timed_mappings(conn: &Connection) -> Result<i64> {
     Ok(inserted)
 }
 
+/// Owned sync inputs prepared while the database lock is held.
+/// Remote calls happen only in [`collect_remote_outcomes`], which does not borrow a connection.
+pub struct MacosSyncBegin {
+    direction: String,
+    listed: Vec<RemoteEvent>,
+    remote_work: MacosRemoteWork,
+}
+
+enum MacosRemoteWork {
+    Bidirectional(Vec<TaskSnapshot>),
+    LocalToRemote(Vec<TaskSnapshot>),
+    RemoteToLocal(Vec<SyncOutcome>),
+}
+
+pub async fn list_macos_window(
+    api: &dyn CalendarApi,
+    calendar_id: &str,
+    now_unix: i64,
+) -> Result<Vec<RemoteEvent>> {
+    let (window_start, window_end) = import_window(now_unix);
+    api.list_events(calendar_id, window_start, window_end).await
+}
+
+pub fn begin_macos_sync(
+    conn: &Connection,
+    listed: Vec<RemoteEvent>,
+    direction: &str,
+) -> Result<MacosSyncBegin> {
+    let direction = normalize_sync_direction(Some(direction)).to_string();
+    ensure_timed_mappings(conn)?;
+    adopt_listed_events(conn, &listed)?;
+    let remote_work = if direction == DIRECTION_BIDIRECTIONAL {
+        MacosRemoteWork::Bidirectional(eligible_snapshots(conn)?)
+    } else if direction == DIRECTION_LOCAL_TO_REMOTE {
+        MacosRemoteWork::LocalToRemote(eligible_snapshots(conn)?)
+    } else {
+        MacosRemoteWork::RemoteToLocal(pull_outcomes_for_listed(conn, &listed)?)
+    };
+    Ok(MacosSyncBegin {
+        direction,
+        listed,
+        remote_work,
+    })
+}
+
+pub async fn collect_remote_outcomes(
+    api: &dyn CalendarApi,
+    calendar_id: &str,
+    offset_seconds: i32,
+    begin: &MacosSyncBegin,
+) -> Result<Vec<SyncOutcome>> {
+    match &begin.remote_work {
+        MacosRemoteWork::Bidirectional(snapshots) => {
+            compute_outcomes(api, calendar_id, offset_seconds, snapshots.clone()).await
+        }
+        MacosRemoteWork::LocalToRemote(snapshots) => {
+            let mut outcomes = Vec::new();
+            for snapshot in snapshots {
+                outcomes.push(push_snapshot(api, calendar_id, offset_seconds, snapshot).await?);
+            }
+            Ok(outcomes)
+        }
+        MacosRemoteWork::RemoteToLocal(outcomes) => Ok(outcomes.clone()),
+    }
+}
+
+pub fn complete_macos_sync(
+    conn: &Connection,
+    begin: &MacosSyncBegin,
+    mut outcomes: Vec<SyncOutcome>,
+) -> Result<SyncRunResult> {
+    if begin.direction != DIRECTION_LOCAL_TO_REMOTE {
+        let mapped = macos_external_ids(conn)?;
+        for event in &begin.listed {
+            if should_import(conn, event, &mapped)? {
+                outcomes.push(stage_import(conn, event)?);
+            }
+        }
+    }
+    apply_provider_outcomes(conn, MACOS_PROVIDER, "macOS Calendar", &outcomes)
+}
+
+/// Test helper. Holds `conn` across `.await`, so the future is not `Send`.
+/// Tauri commands must use the begin/collect/complete split instead.
+#[cfg_attr(not(test), allow(dead_code))]
 pub async fn run_macos_sync(
     conn: &Connection,
     api: &dyn CalendarApi,
@@ -429,58 +514,42 @@ pub async fn run_macos_sync(
     now_unix: i64,
     offset_seconds: i32,
 ) -> Result<SyncRunResult> {
-    let direction = normalize_sync_direction(Some(direction));
-    let (window_start, window_end) = import_window(now_unix);
-    let listed = api
-        .list_events(calendar_id, window_start, window_end)
-        .await?;
-    ensure_timed_mappings(conn)?;
-    adopt_listed_events(conn, &listed)?;
-
-    let mut outcomes = Vec::new();
-    if direction == DIRECTION_BIDIRECTIONAL {
-        let eligible = load_provider_snapshots(conn, MACOS_PROVIDER)?
-            .into_iter()
-            .filter(|snapshot| task_is_sync_eligible(&snapshot.task))
-            .collect();
-        outcomes.extend(compute_outcomes(api, calendar_id, offset_seconds, eligible).await?);
-    } else if direction == DIRECTION_LOCAL_TO_REMOTE {
-        for snapshot in load_provider_snapshots(conn, MACOS_PROVIDER)? {
-            if !task_is_sync_eligible(&snapshot.task) {
-                continue;
-            }
-            outcomes.push(push_snapshot(api, calendar_id, offset_seconds, &snapshot).await?);
-        }
-    } else {
-        for event in &listed {
-            let Some(task_id) = task_id_for_external(conn, &event.id)? else {
-                continue;
-            };
-            let Some(task) = task_module::get_by_id(conn, &task_id)? else {
-                continue;
-            };
-            if !task_is_sync_eligible(&task) {
-                continue;
-            }
-            outcomes.push(SyncOutcome::Pull {
-                task,
-                remote: event.clone(),
-            });
-        }
-    }
-
-    if direction != DIRECTION_LOCAL_TO_REMOTE {
-        let mapped = macos_external_ids(conn)?;
-        for event in &listed {
-            if should_import(conn, event, &mapped)? {
-                outcomes.push(stage_import(conn, event)?);
-            }
-        }
-    }
-
-    apply_provider_outcomes(conn, MACOS_PROVIDER, "macOS Calendar", &outcomes)
+    let listed = list_macos_window(api, calendar_id, now_unix).await?;
+    let begin = begin_macos_sync(conn, listed, direction)?;
+    let outcomes = collect_remote_outcomes(api, calendar_id, offset_seconds, &begin).await?;
+    complete_macos_sync(conn, &begin, outcomes)
 }
 
+fn eligible_snapshots(conn: &Connection) -> Result<Vec<TaskSnapshot>> {
+    Ok(load_provider_snapshots(conn, MACOS_PROVIDER)?
+        .into_iter()
+        .filter(|snapshot| task_is_sync_eligible(&snapshot.task))
+        .collect())
+}
+
+fn pull_outcomes_for_listed(conn: &Connection, listed: &[RemoteEvent]) -> Result<Vec<SyncOutcome>> {
+    let mut outcomes = Vec::new();
+    for event in listed {
+        let Some(task_id) = task_id_for_external(conn, &event.id)? else {
+            continue;
+        };
+        let Some(task) = task_module::get_by_id(conn, &task_id)? else {
+            continue;
+        };
+        if !task_is_sync_eligible(&task) {
+            continue;
+        }
+        outcomes.push(SyncOutcome::Pull {
+            task,
+            remote: event.clone(),
+        });
+    }
+    Ok(outcomes)
+}
+
+/// Test helper. Holds `conn` across `.await`, so the future is not `Send`.
+/// Tauri commands must stage database work, drop the lock, then await EventKit.
+#[cfg_attr(not(test), allow(dead_code))]
 pub async fn resolve_macos_conflict(
     conn: &Connection,
     api: &dyn CalendarApi,
@@ -511,20 +580,16 @@ pub async fn resolve_macos_conflict(
     }
 }
 
-async fn keep_both_rename(
+pub fn stage_keep_both_rename(
     conn: &Connection,
-    api: &dyn CalendarApi,
-    calendar_id: &str,
-    task_id: &str,
-    offset_seconds: i32,
-) -> Result<SyncRunResult> {
-    let snapshot = macos_snapshot(conn, task_id)?;
-    let remote = require_remote(api, calendar_id, &snapshot.external_id).await?;
+    snapshot: &TaskSnapshot,
+    remote: &RemoteEvent,
+) -> Result<(Task, Task)> {
     let renamed = disambiguated_title(&snapshot.task.title, "本地");
     task_module::update(
         conn,
         UpdateTaskInput {
-            id: task_id.to_string(),
+            id: snapshot.task.id.clone(),
             title: Some(renamed),
             description: None,
             status: None,
@@ -536,43 +601,31 @@ async fn keep_both_rename(
             tags: None,
         },
     )?;
-    let renamed_task = task_module::get_by_id(conn, task_id)?
+    let renamed_task = task_module::get_by_id(conn, &snapshot.task.id)?
         .ok_or_else(|| anyhow!("task disappeared during macOS conflict resolution"))?;
-    let imported = create_task_from_event(conn, &remote)?;
+    let imported = create_task_from_event(conn, remote)?;
     enroll_macos(conn, &imported.id)?;
-    let saved = api
-        .insert_event(calendar_id, &task_to_event(&renamed_task, offset_seconds))
-        .await?;
-    apply_provider_outcomes(
-        conn,
-        MACOS_PROVIDER,
-        "macOS Calendar",
-        &[
-            SyncOutcome::Clean {
-                task_id: renamed_task.id,
-                external_id: saved.id,
-                local_updated: renamed_task.updated_at,
-                remote_updated: saved.updated_unix,
-            },
-            SyncOutcome::Clean {
-                task_id: imported.id,
-                external_id: remote.id,
-                local_updated: imported.updated_at,
-                remote_updated: remote.updated_unix,
-            },
-        ],
-    )
+    Ok((renamed_task, imported))
 }
 
-async fn keep_both_newest(
+pub enum NewestStage {
+    LocalNewer {
+        primary: Task,
+        external_id: String,
+        archived: Task,
+    },
+    RemoteNewer {
+        primary: Task,
+        remote: RemoteEvent,
+        archived: Task,
+    },
+}
+
+pub fn stage_keep_both_newest(
     conn: &Connection,
-    api: &dyn CalendarApi,
-    calendar_id: &str,
-    task_id: &str,
-    offset_seconds: i32,
-) -> Result<SyncRunResult> {
-    let snapshot = macos_snapshot(conn, task_id)?;
-    let remote = require_remote(api, calendar_id, &snapshot.external_id).await?;
+    snapshot: TaskSnapshot,
+    remote: RemoteEvent,
+) -> Result<NewestStage> {
     let local_is_newer = snapshot.task.updated_at >= remote.updated_unix;
     if local_is_newer {
         let archived_title = disambiguated_title(&event_title(&remote.summary), "较早");
@@ -591,35 +644,11 @@ async fn keep_both_newest(
             },
         )?;
         enroll_macos(conn, &archived.id)?;
-        let archived_event = api
-            .insert_event(calendar_id, &task_to_event(&archived, offset_seconds))
-            .await?;
-        let saved = api
-            .update_event(
-                calendar_id,
-                &snapshot.external_id,
-                &task_to_event(&snapshot.task, offset_seconds),
-            )
-            .await?;
-        apply_provider_outcomes(
-            conn,
-            MACOS_PROVIDER,
-            "macOS Calendar",
-            &[
-                SyncOutcome::Clean {
-                    task_id: snapshot.task.id,
-                    external_id: saved.id,
-                    local_updated: snapshot.task.updated_at,
-                    remote_updated: saved.updated_unix,
-                },
-                SyncOutcome::Clean {
-                    task_id: archived.id,
-                    external_id: archived_event.id,
-                    local_updated: archived.updated_at,
-                    remote_updated: archived_event.updated_unix,
-                },
-            ],
-        )
+        Ok(NewestStage::LocalNewer {
+            primary: snapshot.task,
+            external_id: snapshot.external_id,
+            archived,
+        })
     } else {
         let archived_title = disambiguated_title(&snapshot.task.title, "较早");
         let archived = task_module::create(
@@ -637,26 +666,119 @@ async fn keep_both_newest(
             },
         )?;
         enroll_macos(conn, &archived.id)?;
-        let archived_event = api
-            .insert_event(calendar_id, &task_to_event(&archived, offset_seconds))
-            .await?;
-        apply_provider_outcomes(
-            conn,
-            MACOS_PROVIDER,
-            "macOS Calendar",
-            &[
-                SyncOutcome::Pull {
-                    task: snapshot.task,
-                    remote: remote.clone(),
-                },
-                SyncOutcome::Clean {
-                    task_id: archived.id,
-                    external_id: archived_event.id,
-                    local_updated: archived.updated_at,
-                    remote_updated: archived_event.updated_unix,
-                },
-            ],
-        )
+        Ok(NewestStage::RemoteNewer {
+            primary: snapshot.task,
+            remote,
+            archived,
+        })
+    }
+}
+
+pub fn apply_macos_outcomes(conn: &Connection, outcomes: &[SyncOutcome]) -> Result<SyncRunResult> {
+    apply_provider_outcomes(conn, MACOS_PROVIDER, "macOS Calendar", outcomes)
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+async fn keep_both_rename(
+    conn: &Connection,
+    api: &dyn CalendarApi,
+    calendar_id: &str,
+    task_id: &str,
+    offset_seconds: i32,
+) -> Result<SyncRunResult> {
+    let snapshot = macos_snapshot(conn, task_id)?;
+    let remote = require_remote(api, calendar_id, &snapshot.external_id).await?;
+    let (renamed_task, imported) = stage_keep_both_rename(conn, &snapshot, &remote)?;
+    let saved = api
+        .insert_event(calendar_id, &task_to_event(&renamed_task, offset_seconds))
+        .await?;
+    apply_macos_outcomes(
+        conn,
+        &[
+            SyncOutcome::Clean {
+                task_id: renamed_task.id,
+                external_id: saved.id,
+                local_updated: renamed_task.updated_at,
+                remote_updated: saved.updated_unix,
+            },
+            SyncOutcome::Clean {
+                task_id: imported.id,
+                external_id: remote.id,
+                local_updated: imported.updated_at,
+                remote_updated: remote.updated_unix,
+            },
+        ],
+    )
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+async fn keep_both_newest(
+    conn: &Connection,
+    api: &dyn CalendarApi,
+    calendar_id: &str,
+    task_id: &str,
+    offset_seconds: i32,
+) -> Result<SyncRunResult> {
+    let snapshot = macos_snapshot(conn, task_id)?;
+    let remote = require_remote(api, calendar_id, &snapshot.external_id).await?;
+    match stage_keep_both_newest(conn, snapshot, remote)? {
+        NewestStage::LocalNewer {
+            primary,
+            external_id,
+            archived,
+        } => {
+            let archived_event = api
+                .insert_event(calendar_id, &task_to_event(&archived, offset_seconds))
+                .await?;
+            let saved = api
+                .update_event(
+                    calendar_id,
+                    &external_id,
+                    &task_to_event(&primary, offset_seconds),
+                )
+                .await?;
+            apply_macos_outcomes(
+                conn,
+                &[
+                    SyncOutcome::Clean {
+                        task_id: primary.id,
+                        external_id: saved.id,
+                        local_updated: primary.updated_at,
+                        remote_updated: saved.updated_unix,
+                    },
+                    SyncOutcome::Clean {
+                        task_id: archived.id,
+                        external_id: archived_event.id,
+                        local_updated: archived.updated_at,
+                        remote_updated: archived_event.updated_unix,
+                    },
+                ],
+            )
+        }
+        NewestStage::RemoteNewer {
+            primary,
+            remote,
+            archived,
+        } => {
+            let archived_event = api
+                .insert_event(calendar_id, &task_to_event(&archived, offset_seconds))
+                .await?;
+            apply_macos_outcomes(
+                conn,
+                &[
+                    SyncOutcome::Pull {
+                        task: primary,
+                        remote,
+                    },
+                    SyncOutcome::Clean {
+                        task_id: archived.id,
+                        external_id: archived_event.id,
+                        local_updated: archived.updated_at,
+                        remote_updated: archived_event.updated_unix,
+                    },
+                ],
+            )
+        }
     }
 }
 
@@ -702,7 +824,7 @@ async fn push_snapshot_inner(
     })
 }
 
-async fn require_remote(
+pub async fn require_remote(
     api: &dyn CalendarApi,
     calendar_id: &str,
     external_id: &str,
@@ -715,7 +837,7 @@ async fn require_remote(
         .ok_or_else(|| anyhow!("macOS Calendar event no longer exists"))
 }
 
-fn macos_snapshot(conn: &Connection, task_id: &str) -> Result<TaskSnapshot> {
+pub fn macos_snapshot(conn: &Connection, task_id: &str) -> Result<TaskSnapshot> {
     load_provider_snapshots(conn, MACOS_PROVIDER)?
         .into_iter()
         .find(|snapshot| snapshot.task.id == task_id)
