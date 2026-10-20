@@ -35,8 +35,11 @@ pub fn current_access() -> CalendarAccess {
     access_from_code(status.0 as i64)
 }
 
-pub fn request_full_access() -> Result<CalendarAccess> {
+pub async fn request_full_access() -> Result<CalendarAccess> {
     let (tx, rx) = std::sync::mpsc::channel();
+    // The permission prompt has to be created on the main queue, and EventKit
+    // invokes the completion later. The store and block are forgotten so they
+    // stay alive until that completion runs.
     on_main(Box::new(move || unsafe {
         let store = EKEventStore::new();
         let block: RcBlock<dyn Fn(Bool, *mut NSError)> =
@@ -54,7 +57,11 @@ pub fn request_full_access() -> Result<CalendarAccess> {
         std::mem::forget(block);
         std::mem::forget(store);
     }));
-    rx.recv_timeout(Duration::from_secs(600))
+    // Waiting on this thread would deadlock when it is the main thread: the
+    // completion is queued there and cannot run until this wait returns.
+    tokio::task::spawn_blocking(move || rx.recv_timeout(Duration::from_secs(600)))
+        .await
+        .map_err(|err| anyhow!("Calendar permission task failed: {err}"))?
         .map_err(|_| anyhow!("Timed out waiting for Calendar permission"))?;
     Ok(current_access())
 }
